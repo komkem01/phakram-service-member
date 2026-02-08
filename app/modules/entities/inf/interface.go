@@ -121,3 +121,21 @@ type MemberEntity interface {
 	DeleteMemberByAdmin(ctx context.Context, memberID uuid.UUID) error
 	GetMemberByIDByAdmin(ctx context.Context, id uuid.UUID) (*ent.MemberEntity, error)
 }
+
+type MemberTransactionEntity interface {
+	CreateMemberTransaction(ctx context.Context, memberTransaction *ent.MemberTransactionEntity) error
+}
+
+type MemberBankEntity interface {
+	CreateMemberBank(ctx context.Context, memberBank *ent.MemberBankEntity) error
+	GetMemberBankByID(ctx context.Context, id uuid.UUID) (*ent.MemberBankEntity, error)
+	UpdateMemberBank(ctx context.Context, memberBank *ent.MemberBankEntity) error
+	DeleteMemberBank(ctx context.Context, memberBankID uuid.UUID) error
+}
+
+type MemberAddressEntity interface {
+	CreateMemberAddress(ctx context.Context, memberAddress *ent.MemberAddressEntity) error
+	GetMemberAddressByID(ctx context.Context, id uuid.UUID) (*ent.MemberAddressEntity, error)
+	UpdateMemberAddress(ctx context.Context, memberAddress *ent.MemberAddressEntity) error
+	DeleteMemberAddress(ctx context.Context, memberAddressID uuid.UUID) error
+}
