@@ -24,3 +24,9 @@ CREATE TABLE IF NOT EXISTS member_addresses (
 --bun:split
 
 CREATE INDEX IF NOT EXISTS member_addresses_member_id_idx ON member_addresses (member_id);
+
+--bun:split
+
+CREATE UNIQUE INDEX IF NOT EXISTS member_addresses_default_uidx
+	ON member_addresses (member_id)
+	WHERE is_default IS TRUE AND deleted_at IS NULL;

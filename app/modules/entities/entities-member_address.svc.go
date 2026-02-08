@@ -48,6 +48,10 @@ func (s *Service) UpdateMemberAddress(ctx context.Context, memberAddress *ent.Me
 }
 
 func (s *Service) DeleteMemberAddress(ctx context.Context, memberAddressID uuid.UUID) error {
-	_, err := s.db.NewDelete().Model(&ent.MemberAddressEntity{}).Where("id = ?", memberAddressID).Exec(ctx)
+	_, err := s.db.NewUpdate().
+		Model(&ent.MemberAddressEntity{}).
+		Set("deleted_at = ?", time.Now()).
+		Where("id = ?", memberAddressID).
+		Exec(ctx)
 	return err
 }

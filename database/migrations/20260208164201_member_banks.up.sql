@@ -19,3 +19,13 @@ CREATE TABLE IF NOT EXISTS member_banks (
 --bun:split
 
 CREATE INDEX IF NOT EXISTS member_banks_member_id_idx ON member_banks (member_id);
+
+--bun:split
+
+CREATE UNIQUE INDEX IF NOT EXISTS member_banks_member_bank_no_uidx ON member_banks (member_id, bank_no);
+
+--bun:split
+
+CREATE UNIQUE INDEX IF NOT EXISTS member_banks_default_uidx
+	ON member_banks (member_id)
+	WHERE is_default IS TRUE;

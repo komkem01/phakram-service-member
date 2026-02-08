@@ -139,3 +139,128 @@ type MemberAddressEntity interface {
 	UpdateMemberAddress(ctx context.Context, memberAddress *ent.MemberAddressEntity) error
 	DeleteMemberAddress(ctx context.Context, memberAddressID uuid.UUID) error
 }
+
+type MemberAccountEntity interface {
+	ListMemberAccounts(ctx context.Context, req *entitiesdto.ListMemberAccountsRequest) ([]*ent.MemberAccountEntity, *base.ResponsePaginate, error)
+	CreateMemberAccount(ctx context.Context, memberAccount *ent.MemberAccountEntity) error
+	GetMemberAccountByID(ctx context.Context, id uuid.UUID) (*ent.MemberAccountEntity, error)
+	UpdateMemberAccount(ctx context.Context, memberAccount *ent.MemberAccountEntity) error
+	DeleteMemberAccount(ctx context.Context, memberAccountID uuid.UUID) error
+}
+
+type MemberWishlistEntity interface {
+	ListMemberWishlist(ctx context.Context, req *entitiesdto.ListMemberWishlistRequest) ([]*ent.MemberWishlistEntity, *base.ResponsePaginate, error)
+	CreateMemberWishlist(ctx context.Context, memberWishlist *ent.MemberWishlistEntity) error
+	GetMemberWishlistByID(ctx context.Context, id uuid.UUID) (*ent.MemberWishlistEntity, error)
+	UpdateMemberWishlist(ctx context.Context, memberWishlist *ent.MemberWishlistEntity) error
+	DeleteMemberWishlist(ctx context.Context, memberWishlistID uuid.UUID) error
+}
+
+type MemberFileEntity interface {
+	ListMemberFiles(ctx context.Context, req *entitiesdto.ListMemberFilesRequest) ([]*ent.MemberFileEntity, *base.ResponsePaginate, error)
+	CreateMemberFile(ctx context.Context, memberFile *ent.MemberFileEntity) error
+	GetMemberFileByID(ctx context.Context, id uuid.UUID) (*ent.MemberFileEntity, error)
+	UpdateMemberFile(ctx context.Context, memberFile *ent.MemberFileEntity) error
+	DeleteMemberFile(ctx context.Context, memberFileID uuid.UUID) error
+}
+
+type PaymentEntity interface {
+	CreatePayment(ctx context.Context, payment *ent.PaymentEntity) error
+	GetPaymentByID(ctx context.Context, id uuid.UUID) (*ent.PaymentEntity, error)
+	UpdatePayment(ctx context.Context, payment *ent.PaymentEntity) error
+	DeletePayment(ctx context.Context, paymentID uuid.UUID) error
+}
+
+type MemberPaymentEntity interface {
+	CreateMemberPayment(ctx context.Context, memberPayment *ent.MemberPaymentEntity) error
+	GetMemberPaymentByID(ctx context.Context, id uuid.UUID) (*ent.MemberPaymentEntity, error)
+	UpdateMemberPayment(ctx context.Context, memberPayment *ent.MemberPaymentEntity) error
+	DeleteMemberPayment(ctx context.Context, memberPaymentID uuid.UUID) error
+}
+
+type CategoryEntity interface {
+	ListCategories(ctx context.Context, req *entitiesdto.ListCategoriesRequest) ([]*ent.CategoryEntity, *base.ResponsePaginate, error)
+	GetCategoryByID(ctx context.Context, id uuid.UUID) (*ent.CategoryEntity, error)
+	CreateCategory(ctx context.Context, category *ent.CategoryEntity) error
+	UpdateCategory(ctx context.Context, category *ent.CategoryEntity) error
+	DeleteCategory(ctx context.Context, categoryID uuid.UUID) error
+}
+
+type ProductEntity interface {
+	ListProducts(ctx context.Context, req *entitiesdto.ListProductsRequest) ([]*ent.ProductEntity, *base.ResponsePaginate, error)
+	GetProductByID(ctx context.Context, id uuid.UUID) (*ent.ProductEntity, error)
+	CreateProduct(ctx context.Context, product *ent.ProductEntity) error
+	UpdateProduct(ctx context.Context, product *ent.ProductEntity) error
+	DeleteProduct(ctx context.Context, productID uuid.UUID) error
+}
+
+type ProductDetailEntity interface {
+	ListProductDetails(ctx context.Context, req *entitiesdto.ListProductDetailsRequest) ([]*ent.ProductDetailEntity, *base.ResponsePaginate, error)
+	GetProductDetailByID(ctx context.Context, id uuid.UUID) (*ent.ProductDetailEntity, error)
+	CreateProductDetail(ctx context.Context, detail *ent.ProductDetailEntity) error
+	UpdateProductDetail(ctx context.Context, detail *ent.ProductDetailEntity) error
+	DeleteProductDetail(ctx context.Context, detailID uuid.UUID) error
+}
+
+type ProductStockEntity interface {
+	ListProductStocks(ctx context.Context, req *entitiesdto.ListProductStocksRequest) ([]*ent.ProductStockEntity, *base.ResponsePaginate, error)
+	GetProductStockByID(ctx context.Context, id uuid.UUID) (*ent.ProductStockEntity, error)
+	CreateProductStock(ctx context.Context, stock *ent.ProductStockEntity) error
+	UpdateProductStock(ctx context.Context, stock *ent.ProductStockEntity) error
+	DeleteProductStock(ctx context.Context, stockID uuid.UUID) error
+}
+
+type ProductFileEntity interface {
+	ListProductFiles(ctx context.Context, req *entitiesdto.ListProductFilesRequest) ([]*ent.ProductFileEntity, *base.ResponsePaginate, error)
+	GetProductFileByID(ctx context.Context, id uuid.UUID) (*ent.ProductFileEntity, error)
+	CreateProductFile(ctx context.Context, file *ent.ProductFileEntity) error
+	UpdateProductFile(ctx context.Context, file *ent.ProductFileEntity) error
+	DeleteProductFile(ctx context.Context, fileID uuid.UUID) error
+}
+
+type OrderEntity interface {
+	ListOrders(ctx context.Context, req *entitiesdto.ListOrdersRequest) ([]*ent.OrderEntity, *base.ResponsePaginate, error)
+	GetOrderByID(ctx context.Context, id uuid.UUID) (*ent.OrderEntity, error)
+	CreateOrder(ctx context.Context, order *ent.OrderEntity) error
+	UpdateOrder(ctx context.Context, order *ent.OrderEntity) error
+	DeleteOrder(ctx context.Context, orderID uuid.UUID) error
+}
+
+type OrderItemEntity interface {
+	ListOrderItems(ctx context.Context, req *entitiesdto.ListOrderItemsRequest) ([]*ent.OrderItemEntity, *base.ResponsePaginate, error)
+	GetOrderItemByID(ctx context.Context, id uuid.UUID) (*ent.OrderItemEntity, error)
+	CreateOrderItem(ctx context.Context, item *ent.OrderItemEntity) error
+	UpdateOrderItem(ctx context.Context, item *ent.OrderItemEntity) error
+	DeleteOrderItem(ctx context.Context, itemID uuid.UUID) error
+}
+
+type CartEntity interface {
+	ListCarts(ctx context.Context, req *entitiesdto.ListCartsRequest) ([]*ent.CartEntity, *base.ResponsePaginate, error)
+	GetCartByID(ctx context.Context, id uuid.UUID) (*ent.CartEntity, error)
+	CreateCart(ctx context.Context, cart *ent.CartEntity) error
+	UpdateCart(ctx context.Context, cart *ent.CartEntity) error
+	DeleteCart(ctx context.Context, cartID uuid.UUID) error
+}
+
+type CartItemEntity interface {
+	ListCartItems(ctx context.Context, req *entitiesdto.ListCartItemsRequest) ([]*ent.CartItemEntity, *base.ResponsePaginate, error)
+	GetCartItemByID(ctx context.Context, id uuid.UUID) (*ent.CartItemEntity, error)
+	CreateCartItem(ctx context.Context, item *ent.CartItemEntity) error
+	UpdateCartItem(ctx context.Context, item *ent.CartItemEntity) error
+	DeleteCartItem(ctx context.Context, itemID uuid.UUID) error
+}
+
+type PaymentFileEntity interface {
+	CreatePaymentFile(ctx context.Context, paymentFile *ent.PaymentFileEntity) error
+	GetPaymentFileByID(ctx context.Context, id uuid.UUID) (*ent.PaymentFileEntity, error)
+	UpdatePaymentFile(ctx context.Context, paymentFile *ent.PaymentFileEntity) error
+	DeletePaymentFile(ctx context.Context, paymentFileID uuid.UUID) error
+}
+
+type AuditLogEntity interface {
+	ListAuditLogs(ctx context.Context, req *entitiesdto.ListAuditLogsRequest) ([]*ent.AuditLogEntity, *base.ResponsePaginate, error)
+	GetAuditLogByID(ctx context.Context, id uuid.UUID) (*ent.AuditLogEntity, error)
+	CreateAuditLog(ctx context.Context, log *ent.AuditLogEntity) error
+	UpdateAuditLog(ctx context.Context, log *ent.AuditLogEntity) error
+	DeleteAuditLog(ctx context.Context, logID uuid.UUID) error
+}

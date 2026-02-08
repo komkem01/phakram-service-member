@@ -63,7 +63,11 @@ func (s *Service) UpdateMember(ctx context.Context, member *ent.MemberEntity) er
 }
 
 func (s *Service) DeleteMember(ctx context.Context, id uuid.UUID) error {
-	_, err := s.db.NewDelete().Model(&ent.MemberEntity{}).Where("id = ?", id).Exec(ctx)
+	_, err := s.db.NewUpdate().
+		Model(&ent.MemberEntity{}).
+		Set("deleted_at = ?", time.Now()).
+		Where("id = ?", id).
+		Exec(ctx)
 	return err
 }
 
@@ -105,7 +109,11 @@ func (s *Service) UpdateAdminMember(ctx context.Context, member *ent.MemberEntit
 }
 
 func (s *Service) DeleteAdminMember(ctx context.Context, id uuid.UUID) error {
-	_, err := s.db.NewDelete().Model(&ent.MemberEntity{}).Where("id = ?", id).Exec(ctx)
+	_, err := s.db.NewUpdate().
+		Model(&ent.MemberEntity{}).
+		Set("deleted_at = ?", time.Now()).
+		Where("id = ?", id).
+		Exec(ctx)
 	return err
 }
 
@@ -147,6 +155,10 @@ func (s *Service) UpdateMemberByAdmin(ctx context.Context, member *ent.MemberEnt
 }
 
 func (s *Service) DeleteMemberByAdmin(ctx context.Context, id uuid.UUID) error {
-	_, err := s.db.NewDelete().Model(&ent.MemberEntity{}).Where("id = ?", id).Exec(ctx)
+	_, err := s.db.NewUpdate().
+		Model(&ent.MemberEntity{}).
+		Set("deleted_at = ?", time.Now()).
+		Where("id = ?", id).
+		Exec(ctx)
 	return err
 }
