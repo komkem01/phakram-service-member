@@ -102,3 +102,22 @@ type StorageEntity interface {
 	DeleteStoragesByRefID(ctx context.Context, refID uuid.UUID) error
 	UpdateStatusStorage(ctx context.Context, id uuid.UUID, req *ent.StorageEntity) error
 }
+
+type MemberEntity interface {
+	ListMembers(ctx context.Context, req *entitiesdto.ListMembersRequest) ([]*ent.MemberEntity, *base.ResponsePaginate, error)
+	GetMemberByID(ctx context.Context, id uuid.UUID) (*ent.MemberEntity, error)
+	CreateMember(ctx context.Context, member *ent.MemberEntity) error
+	UpdateMember(ctx context.Context, member *ent.MemberEntity) error
+	DeleteMember(ctx context.Context, memberID uuid.UUID) error
+
+	// admin service
+	CreateAdminMember(ctx context.Context, member *ent.MemberEntity) error
+	UpdateAdminMember(ctx context.Context, member *ent.MemberEntity) error
+	DeleteAdminMember(ctx context.Context, memberID uuid.UUID) error
+	GetAdminMemberByID(ctx context.Context, id uuid.UUID) (*ent.MemberEntity, error)
+
+	CreateMemberByAdmin(ctx context.Context, member *ent.MemberEntity) error
+	UpdateMemberByAdmin(ctx context.Context, member *ent.MemberEntity) error
+	DeleteMemberByAdmin(ctx context.Context, memberID uuid.UUID) error
+	GetMemberByIDByAdmin(ctx context.Context, id uuid.UUID) (*ent.MemberEntity, error)
+}
