@@ -17,6 +17,7 @@ type UpdateGenderControllerRequestUri struct {
 type UpdateGenderController struct {
 	NameTh string `json:"name_th"`
 	NameEn string `json:"name_en"`
+	IsActive bool   `json:"is_active"`
 }
 
 func (c *Controller) UpdateController(ctx *gin.Context) {
@@ -48,6 +49,7 @@ func (c *Controller) UpdateController(ctx *gin.Context) {
 	if err := c.svc.UpdateService(ctx, id, &UpdateGenderService{
 		NameTh: req.NameTh,
 		NameEn: req.NameEn,
+		IsActive: req.IsActive,
 	}); err != nil {
 		base.HandleError(ctx, err)
 		return

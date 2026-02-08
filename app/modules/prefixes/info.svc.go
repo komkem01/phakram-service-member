@@ -13,6 +13,7 @@ type InfoPrefixServiceResponses struct {
 	NameTh    string    `json:"name_th"`
 	NameEn    string    `json:"name_en"`
 	GenderID  uuid.UUID
+	IsActive  bool      `json:"is_active"`
 	CreatedAt string    `json:"created_at"`
 }
 

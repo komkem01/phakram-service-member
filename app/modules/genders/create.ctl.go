@@ -11,6 +11,7 @@ import (
 type CreateGenderController struct {
 	NameTh string `json:"name_th"`
 	NameEn string `json:"name_en"`
+	IsActive bool `json:"is_active"`
 }
 
 func (c *Controller) CreateGenderController(ctx *gin.Context) {
@@ -27,6 +28,7 @@ func (c *Controller) CreateGenderController(ctx *gin.Context) {
 	err := c.svc.CreateGenderService(ctx.Request.Context(), &CreateGenderService{
 		NameTh: req.NameTh,
 		NameEn: req.NameEn,
+		IsActive: req.IsActive,
 	})
 	if err != nil {
 		base.HandleError(ctx, err)

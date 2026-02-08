@@ -5,7 +5,7 @@ SET statement_timeout = 0;
 CREATE TABLE IF NOT EXISTS provinces (
 	id uuid PRIMARY KEY,
 	name varchar,
-	is_active bool,
+	is_active bool default true,
 	created_at timestamp DEFAULT current_timestamp,
 	updated_at timestamp DEFAULT current_timestamp
 );

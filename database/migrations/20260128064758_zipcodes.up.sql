@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS zipcodes (
 	id uuid PRIMARY KEY,
 	sub_districts_id uuid REFERENCES sub_districts(id),
 	name varchar,
-	is_active bool,
+	is_active bool default true,
 	created_at timestamp DEFAULT current_timestamp,
 	updated_at timestamp DEFAULT current_timestamp
 );

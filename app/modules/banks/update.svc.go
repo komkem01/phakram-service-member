@@ -13,6 +13,7 @@ type UpdateBankService struct {
 	NameAbbTh string `json:"name_abb_th"`
 	NameEn    string `json:"name_en"`
 	NameAbbEn string `json:"name_abb_en"`
+	IsActive  bool   `json:"is_active"`
 }
 
 func (s *Service) UpdateService(ctx context.Context, id uuid.UUID, req *UpdateBankService) error {

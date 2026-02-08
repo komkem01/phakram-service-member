@@ -5,7 +5,13 @@ SET statement_timeout = 0;
 DO $$
 BEGIN
 	IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'related_entity_enum') THEN
-		CREATE TYPE related_entity_enum AS ENUM ('MEMBER_FILE', 'ORDER_FILE', 'PRODUCT_FILE');
+		CREATE TYPE related_entity_enum AS ENUM (
+			'MEMBER_FILE',
+			'ORDER_FILE',
+			'PRODUCT_FILE',
+			'PAYMENT_FILE',
+            'OTHER'
+		);
 	END IF;
 END$$;
 
@@ -19,7 +25,7 @@ CREATE TABLE IF NOT EXISTS storages (
 	file_type varchar,
 	file_size varchar,
 	related_entity related_entity_enum,
-	uploaded_by uuid REFERENCES members(id),
+	uploaded_by uuid REFERENCES members (id),
 	created_at timestamp DEFAULT current_timestamp,
 	updated_at timestamp DEFAULT current_timestamp
 );

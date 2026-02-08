@@ -13,6 +13,7 @@ type CreateBankService struct {
 	NameAbbTh string `json:"name_abb_th"`
 	NameEn    string `json:"name_en"`
 	NameAbbEn string `json:"name_abb_en"`
+	IsActive  bool   `json:"is_active"`
 }
 
 func (s *Service) CreateBankService(ctx context.Context, req *CreateBankService) error {
@@ -25,6 +26,7 @@ func (s *Service) CreateBankService(ctx context.Context, req *CreateBankService)
 		NameAbbTh: req.NameAbbTh,
 		NameEn:    req.NameEn,
 		NameAbbEn: req.NameAbbEn,
+		IsActive:  req.IsActive,
 	}
 	if err := s.db.CreateBank(ctx, bank); err != nil {
 		return err

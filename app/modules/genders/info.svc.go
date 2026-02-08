@@ -13,6 +13,7 @@ type InfoGenderServiceResponses struct {
 	NameTh    string    `json:"name_th"`
 	NameEn    string    `json:"name_en"`
 	CreatedAt string    `json:"created_at"`
+	IsActive  bool      `json:"is_active"`
 }
 
 func (s *Service) InfoService(ctx context.Context, id uuid.UUID) (*InfoGenderServiceResponses, error) {
@@ -30,6 +31,7 @@ func (s *Service) InfoService(ctx context.Context, id uuid.UUID) (*InfoGenderSer
 		NameTh:    data.NameTh,
 		NameEn:    data.NameEn,
 		CreatedAt: data.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		IsActive:  data.IsActive,
 	}
 	span.AddEvent(`genders.svc.info.success`)
 	return resp, nil
