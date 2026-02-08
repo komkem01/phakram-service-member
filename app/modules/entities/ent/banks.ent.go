@@ -15,6 +15,7 @@ type BankEntity struct {
 	NameAbbTh string    `bun:"name_abb_th" json:"name_abb_th"`
 	NameEn    string    `bun:"name_en" json:"name_en"`
 	NameAbbEn string    `bun:"name_abb_en" json:"name_abb_en"`
+	IsActive  bool      `bun:"is_active" json:"is_active"`
 	CreatedAt time.Time `bun:"created_at,default:current_timestamp" json:"created_at"`
 	UpdatedAt time.Time `bun:"updated_at,default:current_timestamp" json:"updated_at"`
 }

@@ -13,6 +13,7 @@ type CreatePrefixController struct {
 	NameTh   string `json:"name_th"`
 	NameEn   string `json:"name_en"`
 	GenderID string `json:"gender_id"`
+	IsActive bool   `json:"is_active"`
 }
 
 func (c *Controller) CreatePrefixController(ctx *gin.Context) {

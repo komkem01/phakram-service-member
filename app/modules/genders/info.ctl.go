@@ -19,6 +19,7 @@ type InfoGenderControllerResponses struct {
 	NameTh    string    `json:"name_th"`
 	NameEn    string    `json:"name_en"`
 	CreatedAt string    `json:"created_at"`
+	IsActive  bool      `json:"is_active"`
 }
 
 func (c *Controller) InfoController(ctx *gin.Context) {

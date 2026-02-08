@@ -13,6 +13,7 @@ type CreateBankController struct {
 	NameAbbTh string `json:"name_abb_th"`
 	NameEn    string `json:"name_en"`
 	NameAbbEn string `json:"name_abb_en"`
+	IsActive  bool   `json:"is_active"`
 }
 
 func (c *Controller) CreateBankController(ctx *gin.Context) {
@@ -31,6 +32,7 @@ func (c *Controller) CreateBankController(ctx *gin.Context) {
 		NameAbbTh: req.NameAbbTh,
 		NameEn:    req.NameEn,
 		NameAbbEn: req.NameAbbEn,
+		IsActive:  req.IsActive,
 	}); err != nil {
 		base.HandleError(ctx, err)
 		return

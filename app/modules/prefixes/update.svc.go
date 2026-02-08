@@ -12,6 +12,7 @@ type UpdatePrefixService struct {
 	NameTh string `json:"name_th"`
 	NameEn string `json:"name_en"`
 	GenderID uuid.UUID `json:"gender_id"`
+	IsActive bool      `json:"is_active"`
 }
 
 func (s *Service) UpdateService(ctx context.Context, id uuid.UUID, req *UpdatePrefixService) error {
@@ -33,6 +34,7 @@ func (s *Service) UpdateService(ctx context.Context, id uuid.UUID, req *UpdatePr
 	if req.GenderID != uuid.Nil {
 		data.GenderID = req.GenderID
 	}
+	data.IsActive = req.IsActive
 
 	if err := s.db.UpdatePrefix(ctx, data); err != nil {
 		log.With(slog.Any(`id`, id)).Errf(`internal: %s`, err)

@@ -19,6 +19,7 @@ type ListGenderServiceResponses struct {
 	NameTh    string    `json:"name_th"`
 	NameEn    string    `json:"name_en"`
 	CreatedAt string    `json:"created_at"`
+	IsActive  bool      `json:"is_active"`
 }
 
 func (s *Service) ListService(ctx context.Context, req *ListGenderServiceRequest) ([]*ListGenderServiceResponses, *base.ResponsePaginate, error) {
@@ -40,6 +41,7 @@ func (s *Service) ListService(ctx context.Context, req *ListGenderServiceRequest
 			NameTh:    item.NameTh,
 			NameEn:    item.NameEn,
 			CreatedAt: item.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+			IsActive:  item.IsActive,
 		}
 		response = append(response, temp)
 	}

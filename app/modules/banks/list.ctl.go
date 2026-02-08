@@ -20,6 +20,7 @@ type ListBankControllerResponses struct {
 	NameAbbTh string    `json:"name_abb_th"`
 	NameEn    string    `json:"name_en"`
 	NameAbbEn string    `json:"name_abb_en"`
+	IsActive  bool      `json:"is_active"`
 	CreatedAt string    `json:"created_at"`
 	UpdatedAt string    `json:"updated_at"`
 }

@@ -28,6 +28,7 @@ func (c *Controller) CreateGenderController(ctx *gin.Context) {
 	err := c.svc.CreateGenderService(ctx.Request.Context(), &CreateGenderService{
 		NameTh: req.NameTh,
 		NameEn: req.NameEn,
+		IsActive: req.IsActive,
 	})
 	if err != nil {
 		base.HandleError(ctx, err)

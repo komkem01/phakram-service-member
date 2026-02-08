@@ -11,6 +11,7 @@ import (
 type UpdateGenderService struct {
 	NameTh string `json:"name_th"`
 	NameEn string `json:"name_en"`
+	IsActive bool   `json:"is_active"`
 }
 
 func (s *Service) UpdateService(ctx context.Context, id uuid.UUID, req *UpdateGenderService) error {
@@ -29,6 +30,8 @@ func (s *Service) UpdateService(ctx context.Context, id uuid.UUID, req *UpdateGe
 	if req.NameEn != "" {
 		data.NameEn = req.NameEn
 	}
+
+	data.IsActive = req.IsActive
 
 	if err := s.db.UpdateGender(ctx, data); err != nil {
 		log.With(slog.Any(`id`, id)).Errf(`internal: %s`, err)

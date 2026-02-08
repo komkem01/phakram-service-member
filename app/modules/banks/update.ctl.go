@@ -19,6 +19,7 @@ type UpdateBankController struct {
 	NameAbbTh string `json:"name_abb_th"`
 	NameEn    string `json:"name_en"`
 	NameAbbEn string `json:"name_abb_en"`
+	IsActive  bool   `json:"is_active"`
 }
 
 func (c *Controller) UpdateController(ctx *gin.Context) {
