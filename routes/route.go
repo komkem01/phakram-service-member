@@ -43,9 +43,5 @@ func Router(app *gin.Engine, mod *modules.Modules) {
 	api(app.Group("/api/v1"), mod)
 	apiSystem(app.Group("/api/v1"), mod)
 	apiStorage(app.Group("/api/v1"), mod)
-	apiMember(app.Group("/api/v1"), mod)
-	apiProductPublic(app.Group("/api/v1"), mod)
-	apiProduct(app.Group("/api/v1"), mod)
-	apiOrder(app.Group("/api/v1"), mod)
 	apiPublic(app.Group("/api/v1"), mod)
 }
