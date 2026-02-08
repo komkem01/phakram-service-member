@@ -1,7 +1,6 @@
 package auth
 
 import (
-	entitiesinf "phakram/app/modules/entities/inf"
 	"phakram/internal/database"
 
 	"go.opentelemetry.io/otel"
@@ -15,12 +14,9 @@ type Module struct {
 
 type (
 	Service struct {
-		tracer       trace.Tracer
-		bunDB        *database.DatabaseService
-		db           entitiesinf.MemberEntity
-		dbAccount    entitiesinf.MemberAccountEntity
-		dbTrasaction entitiesinf.MemberTransactionEntity
-		secret       string
+		tracer trace.Tracer
+		bunDB  *database.DatabaseService
+		secret string
 	}
 	Controller struct {
 		tracer trace.Tracer
@@ -29,23 +25,17 @@ type (
 )
 
 type Options struct {
-	tracer       trace.Tracer
-	bunDB        *database.DatabaseService
-	db           entitiesinf.MemberEntity
-	dbAccount    entitiesinf.MemberAccountEntity
-	dbTrasaction entitiesinf.MemberTransactionEntity
-	secret       string
+	tracer trace.Tracer
+	bunDB  *database.DatabaseService
+	secret string
 }
 
-func New(bunDB *database.DatabaseService, db entitiesinf.MemberEntity, dbAccount entitiesinf.MemberAccountEntity, dbTrasaction entitiesinf.MemberTransactionEntity, secret string) *Module {
+func New(bunDB *database.DatabaseService, secret string) *Module {
 	tracer := otel.Tracer("auth_module")
 	svc := newService(&Options{
-		tracer:       tracer,
-		bunDB:        bunDB,
-		db:           db,
-		dbAccount:    dbAccount,
-		dbTrasaction: dbTrasaction,
-		secret:       secret,
+		tracer: tracer,
+		bunDB:  bunDB,
+		secret: secret,
 	})
 	return &Module{
 		Svc: svc,
@@ -55,12 +45,9 @@ func New(bunDB *database.DatabaseService, db entitiesinf.MemberEntity, dbAccount
 
 func newService(opt *Options) *Service {
 	return &Service{
-		tracer:       opt.tracer,
-		bunDB:        opt.bunDB,
-		db:           opt.db,
-		dbAccount:    opt.dbAccount,
-		dbTrasaction: opt.dbTrasaction,
-		secret:       opt.secret,
+		tracer: opt.tracer,
+		bunDB:  opt.bunDB,
+		secret: opt.secret,
 	}
 }
 

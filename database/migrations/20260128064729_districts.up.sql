@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS districts (
 	id uuid PRIMARY KEY,
 	province_id uuid REFERENCES provinces(id),
 	name varchar,
-	is_active bool,
+	is_active bool default true,
 	created_at timestamp DEFAULT current_timestamp,
 	updated_at timestamp DEFAULT current_timestamp
 );

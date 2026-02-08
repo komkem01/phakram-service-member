@@ -14,7 +14,6 @@ import (
 	"phakram/app/modules/sentry"
 	"phakram/app/modules/specs"
 	"phakram/app/modules/statuses"
-	"phakram/app/modules/storages"
 	subdistricts "phakram/app/modules/sub_districts"
 	"phakram/app/modules/tiers"
 	"phakram/app/modules/zipcodes"
@@ -41,7 +40,6 @@ type Modules struct {
 	Genders      *genders.Module
 	Prefixes     *prefixes.Module
 	Banks        *banks.Module
-	Storages     *storages.Module
 	Provinces    *provinces.Module
 	Districts    *districts.Module
 	SubDistricts *subdistricts.Module
@@ -70,14 +68,13 @@ func modulesInit() {
 	gendersMod := genders.New(db.Svc, entitiesMod.Svc)
 	prefixesMod := prefixes.New(db.Svc, entitiesMod.Svc)
 	banksMod := banks.New(db.Svc, entitiesMod.Svc)
-	storagesMod := storages.New(db.Svc, entitiesMod.Svc)
 	provincesMod := provinces.New(db.Svc, entitiesMod.Svc)
 	districtsMod := districts.New(db.Svc, entitiesMod.Svc)
 	subDistrictsMod := subdistricts.New(db.Svc, entitiesMod.Svc)
 	zipcodesMod := zipcodes.New(db.Svc, entitiesMod.Svc)
 	statusesMod := statuses.New(db.Svc, entitiesMod.Svc)
 	tiersMod := tiers.New(db.Svc, entitiesMod.Svc)
-	authMod := auth.New(db.Svc, entitiesMod.Svc, entitiesMod.Svc, entitiesMod.Svc, conf.AppKey)
+	authMod := auth.New(db.Svc, conf.AppKey)
 	mod = &Modules{
 		Conf:         confMod,
 		Specs:        specsMod,
@@ -91,7 +88,6 @@ func modulesInit() {
 		Genders:      gendersMod,
 		Prefixes:     prefixesMod,
 		Banks:        banksMod,
-		Storages:     storagesMod,
 		Provinces:    provincesMod,
 		Districts:    districtsMod,
 		SubDistricts: subDistrictsMod,

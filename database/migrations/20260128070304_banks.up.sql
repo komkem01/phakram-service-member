@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS banks (
 	name_abb_th varchar,
 	name_en varchar,
 	name_abb_en varchar,
+	is_active bool default false,
 	created_at timestamp DEFAULT current_timestamp,
 	updated_at timestamp DEFAULT current_timestamp
 );

@@ -98,29 +98,29 @@ func apiSystem(r *gin.RouterGroup, mod *modules.Modules) {
 	}
 }
 
-func apiStorage(r *gin.RouterGroup, mod *modules.Modules) {
-	auth := r.Group("/auth", mod.Auth.Ctl.AuthMiddleware())
-	{
-		storages := auth.Group("/storages")
-		{
-			storages.GET("/", mod.Storages.Ctl.StoragesList)
-			storages.GET("/:id", mod.Storages.Ctl.StoragesInfo)
-			storages.POST("/", mod.Storages.Ctl.CreateStorageController)
-			storages.PATCH("/:id", mod.Storages.Ctl.StoragesUpdate)
-			storages.DELETE("/:id", mod.Storages.Ctl.StoragesDelete)
-		}
-	}
-}
+// func apiStorage(r *gin.RouterGroup, mod *modules.Modules) {
+// 	auth := r.Group("/auth", mod.Auth.Ctl.AuthMiddleware())
+// 	{
+// 		storages := auth.Group("/storages")
+// 		{
+// 			storages.GET("/", mod.Storages.Ctl.StoragesList)
+// 			storages.GET("/:id", mod.Storages.Ctl.StoragesInfo)
+// 			storages.POST("/", mod.Storages.Ctl.CreateStorageController)
+// 			storages.PATCH("/:id", mod.Storages.Ctl.StoragesUpdate)
+// 			storages.DELETE("/:id", mod.Storages.Ctl.StoragesDelete)
+// 		}
+// 	}
+// }
 
-func apiPublic(r *gin.RouterGroup, mod *modules.Modules) {
-	Public := r.Group("/public")
-	{
-		auth := Public.Group("/auth")
-		{
-			auth.POST("/register", mod.Auth.Ctl.RegisterMemberController)
-			auth.POST("/login", mod.Auth.Ctl.LoginMemberController)
-			auth.POST("/refresh", mod.Auth.Ctl.RefreshTokenController)
-			auth.GET("/me", mod.Auth.Ctl.MeController)
-		}
-	}
-}
+// func apiPublic(r *gin.RouterGroup, mod *modules.Modules) {
+// 	Public := r.Group("/public")
+// 	{
+// 		auth := Public.Group("/auth")
+// 		{
+// 			auth.POST("/register", mod.Auth.Ctl.RegisterMemberController)
+// 			auth.POST("/login", mod.Auth.Ctl.LoginMemberController)
+// 			auth.POST("/refresh", mod.Auth.Ctl.RefreshTokenController)
+// 			auth.GET("/me", mod.Auth.Ctl.MeController)
+// 		}
+// 	}
+// }

@@ -11,6 +11,7 @@ import (
 type CreateGenderController struct {
 	NameTh string `json:"name_th"`
 	NameEn string `json:"name_en"`
+	IsActive bool `json:"is_active"`
 }
 
 func (c *Controller) CreateGenderController(ctx *gin.Context) {
