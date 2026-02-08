@@ -93,3 +93,12 @@ type BankEntity interface {
 	UpdateBank(ctx context.Context, bank *ent.BankEntity) error
 	DeleteBank(ctx context.Context, bankID uuid.UUID) error
 }
+
+type StorageEntity interface {
+	UploadStorage(ctx context.Context, storage *ent.StorageEntity) error
+	GetStorageByID(ctx context.Context, id uuid.UUID) (*ent.StorageEntity, error)
+	ListStoragesByRefID(ctx context.Context, refID uuid.UUID) ([]*ent.StorageEntity, error)
+	DeleteStorageByID(ctx context.Context, id uuid.UUID) error
+	DeleteStoragesByRefID(ctx context.Context, refID uuid.UUID) error
+	UpdateStatusStorage(ctx context.Context, id uuid.UUID, req *ent.StorageEntity) error
+}
