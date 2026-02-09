@@ -6,7 +6,7 @@ DO $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'status_audit_enum') THEN
         CREATE TYPE status_audit_enum AS ENUM (
-            'successes',
+            'success',
             'failed'
         );
     END IF;

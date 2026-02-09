@@ -66,7 +66,7 @@ func modulesInit() {
 	exampleMod2 := exampletwo.New(config.Conf[exampletwo.Config](confMod.Svc), entitiesMod.Svc)
 	// kafka := kafka.New(&conf.Kafka)
 	gendersMod := genders.New(db.Svc, entitiesMod.Svc)
-	prefixesMod := prefixes.New(db.Svc, entitiesMod.Svc)
+	prefixesMod := prefixes.New(db.Svc, entitiesMod.Svc, entitiesMod.Svc)
 	banksMod := banks.New(db.Svc, entitiesMod.Svc)
 	provincesMod := provinces.New(db.Svc, entitiesMod.Svc)
 	districtsMod := districts.New(db.Svc, entitiesMod.Svc)

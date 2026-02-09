@@ -15,12 +15,13 @@ type InfoPrefixControllerRequestUri struct {
 }
 
 type InfoPrefixControllerResponses struct {
-	ID        uuid.UUID `json:"id"`
-	NameTh    string    `json:"name_th"`
-	NameEn    string    `json:"name_en"`
-	GenderID  uuid.UUID `json:"gender_id"`
-	IsActive  bool      `json:"is_active"`
-	CreatedAt string    `json:"created_at"`
+	ID         uuid.UUID `json:"id"`
+	NameTh     string    `json:"name_th"`
+	NameEn     string    `json:"name_en"`
+	GenderID   uuid.UUID `json:"gender_id"`
+	GenderName string    `json:"gender_name"`
+	IsActive   bool      `json:"is_active"`
+	CreatedAt  string    `json:"created_at"`
 }
 
 func (c *Controller) InfoController(ctx *gin.Context) {

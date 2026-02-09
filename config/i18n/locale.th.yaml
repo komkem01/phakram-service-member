@@ -2,3 +2,6 @@ success: สำเร็จ
 internal-error: เกิดข้อผิดพลาดจากเซิร์ฟเวอร์
 invalid-request-form: กรอกข้อมูลไม่ถูกต้อง
 example-message-ok: โอเค
+
+prefix-not-found: ไม่พบคำนำหน้า
+gender-not-found: ไม่พบเพศ
