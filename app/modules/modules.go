@@ -9,6 +9,7 @@ import (
 	"phakram/app/modules/example"
 	exampletwo "phakram/app/modules/example-two"
 	"phakram/app/modules/genders"
+	"phakram/app/modules/members"
 	"phakram/app/modules/prefixes"
 	"phakram/app/modules/provinces"
 	"phakram/app/modules/sentry"
@@ -47,6 +48,7 @@ type Modules struct {
 	Statuses     *statuses.Module
 	Tiers        *tiers.Module
 	Auth         *auth.Module
+	Members      *members.Module
 }
 
 func modulesInit() {
@@ -75,6 +77,7 @@ func modulesInit() {
 	statusesMod := statuses.New(db.Svc, entitiesMod.Svc)
 	tiersMod := tiers.New(db.Svc, entitiesMod.Svc)
 	authMod := auth.New(db.Svc, conf.AppKey)
+	membersMod := members.New(db.Svc, entitiesMod.Svc, entitiesMod.Svc, entitiesMod.Svc)
 	mod = &Modules{
 		Conf:         confMod,
 		Specs:        specsMod,
@@ -95,6 +98,7 @@ func modulesInit() {
 		Statuses:     statusesMod,
 		Tiers:        tiersMod,
 		Auth:         authMod,
+		Members:      membersMod,
 	}
 
 	log.Infof("all modules initialized")

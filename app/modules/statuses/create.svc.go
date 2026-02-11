@@ -12,8 +12,9 @@ import (
 )
 
 type CreateStatusService struct {
-	NameTh string `json:"name_th"`
-	NameEn string `json:"name_en"`
+	NameTh   string `json:"name_th"`
+	NameEn   string `json:"name_en"`
+	IsActive *bool  `json:"is_active"`
 }
 
 func (s *Service) CreateStatusService(ctx context.Context, req *CreateStatusService) error {
@@ -21,10 +22,15 @@ func (s *Service) CreateStatusService(ctx context.Context, req *CreateStatusServ
 	span.AddEvent(`statuses.svc.create.start`)
 
 	id := uuid.New()
+	isActive := true
+	if req.IsActive != nil {
+		isActive = *req.IsActive
+	}
 	status := &ent.StatusEntity{
-		ID:     id,
-		NameTh: req.NameTh,
-		NameEn: req.NameEn,
+		ID:       id,
+		NameTh:   req.NameTh,
+		NameEn:   req.NameEn,
+		IsActive: isActive,
 	}
 	err := s.bunDB.DB().RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
 		if _, err := tx.NewInsert().Model(status).Exec(ctx); err != nil {

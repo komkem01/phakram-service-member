@@ -16,7 +16,7 @@ type CreateTierService struct {
 	NameTh       string          `json:"name_th"`
 	NameEn       string          `json:"name_en"`
 	MinSpending  decimal.Decimal `json:"min_spending"`
-	IsActive     bool            `json:"is_active"`
+	IsActive     *bool           `json:"is_active"`
 	DiscountRate decimal.Decimal `json:"discount_rate"`
 }
 
@@ -25,12 +25,16 @@ func (s *Service) CreateTierService(ctx context.Context, req *CreateTierService)
 	span.AddEvent(`tiers.svc.create.start`)
 
 	id := uuid.New()
+	isActive := true
+	if req.IsActive != nil {
+		isActive = *req.IsActive
+	}
 	tier := &ent.TierEntity{
 		ID:           id,
 		NameTh:       req.NameTh,
 		NameEn:       req.NameEn,
 		MinSpending:  req.MinSpending,
-		IsActive:     req.IsActive,
+		IsActive:     isActive,
 		DiscountRate: req.DiscountRate,
 	}
 	err := s.bunDB.DB().RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {

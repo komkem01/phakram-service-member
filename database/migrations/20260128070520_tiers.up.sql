@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS tiers (
 	name_en varchar,
 	min_spending decimal,
 	discount_rate decimal,
-	is_active bool default false,
+	is_active bool default true,
 	created_at timestamp DEFAULT current_timestamp,
 	updated_at timestamp DEFAULT current_timestamp
 );

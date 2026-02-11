@@ -9,8 +9,9 @@ import (
 )
 
 type CreateStatusController struct {
-	NameTh string `json:"name_th"`
-	NameEn string `json:"name_en"`
+	NameTh   string `json:"name_th"`
+	NameEn   string `json:"name_en"`
+	IsActive *bool  `json:"is_active"`
 }
 
 func (c *Controller) CreateStatusController(ctx *gin.Context) {
@@ -25,8 +26,9 @@ func (c *Controller) CreateStatusController(ctx *gin.Context) {
 	span.AddEvent(`statuses.ctl.create.request`)
 
 	if err := c.svc.CreateStatusService(ctx.Request.Context(), &CreateStatusService{
-		NameTh: req.NameTh,
-		NameEn: req.NameEn,
+		NameTh:   req.NameTh,
+		NameEn:   req.NameEn,
+		IsActive: req.IsActive,
 	}); err != nil {
 		base.HandleError(ctx, err)
 		return
