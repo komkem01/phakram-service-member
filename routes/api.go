@@ -112,15 +112,22 @@ func apiSystem(r *gin.RouterGroup, mod *modules.Modules) {
 // 	}
 // }
 
-// func apiPublic(r *gin.RouterGroup, mod *modules.Modules) {
-// 	Public := r.Group("/public")
-// 	{
-// 		auth := Public.Group("/auth")
-// 		{
-// 			auth.POST("/register", mod.Auth.Ctl.RegisterMemberController)
-// 			auth.POST("/login", mod.Auth.Ctl.LoginMemberController)
-// 			auth.POST("/refresh", mod.Auth.Ctl.RefreshTokenController)
-// 			auth.GET("/me", mod.Auth.Ctl.MeController)
-// 		}
-// 	}
-// }
+func apiPublic(r *gin.RouterGroup, mod *modules.Modules) {
+	Public := r.Group("/public")
+	{
+		register := Public.Group("/members")
+		{
+			register.POST("/register", mod.Members.Ctl.CreateRegisterController)
+		}
+	}
+}
+
+func apiAuth(r *gin.RouterGroup, mod *modules.Modules) {
+	auth := r.Group("/auth", mod.Auth.Ctl.AuthMiddleware())
+	{
+		members := auth.Group("/members")
+		{
+			members.POST("/register", mod.Members.Ctl.CreateRegisterByAdminController)
+		}
+	}
+}

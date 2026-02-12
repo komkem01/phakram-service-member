@@ -9,6 +9,7 @@ import (
 	"phakram/app/modules/example"
 	exampletwo "phakram/app/modules/example-two"
 	"phakram/app/modules/genders"
+	"phakram/app/modules/members"
 	"phakram/app/modules/prefixes"
 	"phakram/app/modules/provinces"
 	"phakram/app/modules/sentry"
@@ -47,6 +48,7 @@ type Modules struct {
 	Statuses     *statuses.Module
 	Tiers        *tiers.Module
 	Auth         *auth.Module
+	Members      *members.Module
 }
 
 func modulesInit() {
@@ -66,7 +68,7 @@ func modulesInit() {
 	exampleMod2 := exampletwo.New(config.Conf[exampletwo.Config](confMod.Svc), entitiesMod.Svc)
 	// kafka := kafka.New(&conf.Kafka)
 	gendersMod := genders.New(db.Svc, entitiesMod.Svc)
-	prefixesMod := prefixes.New(db.Svc, entitiesMod.Svc)
+	prefixesMod := prefixes.New(db.Svc, entitiesMod.Svc, entitiesMod.Svc)
 	banksMod := banks.New(db.Svc, entitiesMod.Svc)
 	provincesMod := provinces.New(db.Svc, entitiesMod.Svc)
 	districtsMod := districts.New(db.Svc, entitiesMod.Svc)
@@ -75,6 +77,7 @@ func modulesInit() {
 	statusesMod := statuses.New(db.Svc, entitiesMod.Svc)
 	tiersMod := tiers.New(db.Svc, entitiesMod.Svc)
 	authMod := auth.New(db.Svc, conf.AppKey)
+	membersMod := members.New(db.Svc, entitiesMod.Svc, entitiesMod.Svc, entitiesMod.Svc)
 	mod = &Modules{
 		Conf:         confMod,
 		Specs:        specsMod,
@@ -95,6 +98,7 @@ func modulesInit() {
 		Statuses:     statusesMod,
 		Tiers:        tiersMod,
 		Auth:         authMod,
+		Members:      membersMod,
 	}
 
 	log.Infof("all modules initialized")

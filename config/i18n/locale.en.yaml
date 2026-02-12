@@ -2,3 +2,6 @@ success: Success
 internal-error: Internal server error
 invalid-request-form: Invalid request form
 example-message-ok: Example message ok
+
+prefix-not-found: Prefix not found
+gender-not-found: Gender not found

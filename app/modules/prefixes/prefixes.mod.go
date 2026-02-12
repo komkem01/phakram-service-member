@@ -14,9 +14,10 @@ type Module struct {
 }
 type (
 	Service struct {
-		tracer trace.Tracer
-		bunDB  *database.DatabaseService
-		db     entitiesinf.PrefixEntity
+		tracer   trace.Tracer
+		bunDB    *database.DatabaseService
+		db       entitiesinf.PrefixEntity
+		dbGender entitiesinf.GenderEntity
 	}
 	Controller struct {
 		tracer trace.Tracer
@@ -26,17 +27,19 @@ type (
 
 type Options struct {
 	// *configDTO.Config[Config]
-	tracer trace.Tracer
-	bunDB  *database.DatabaseService
-	db     entitiesinf.PrefixEntity
+	tracer   trace.Tracer
+	bunDB    *database.DatabaseService
+	db       entitiesinf.PrefixEntity
+	dbGender entitiesinf.GenderEntity
 }
 
-func New(bunDB *database.DatabaseService, db entitiesinf.PrefixEntity) *Module {
+func New(bunDB *database.DatabaseService, db entitiesinf.PrefixEntity, dbGender entitiesinf.GenderEntity) *Module {
 	tracer := otel.Tracer("prefixes_module")
 	svc := newService(&Options{
-		tracer: tracer,
-		bunDB:  bunDB,
-		db:     db,
+		tracer:   tracer,
+		bunDB:    bunDB,
+		db:       db,
+		dbGender: dbGender,
 	})
 	return &Module{
 		Svc: svc,
@@ -46,9 +49,10 @@ func New(bunDB *database.DatabaseService, db entitiesinf.PrefixEntity) *Module {
 
 func newService(opt *Options) *Service {
 	return &Service{
-		tracer: opt.tracer,
-		bunDB:  opt.bunDB,
-		db:     opt.db,
+		tracer:   opt.tracer,
+		bunDB:    opt.bunDB,
+		db:       opt.db,
+		dbGender: opt.dbGender,
 	}
 }
 

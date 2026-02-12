@@ -40,8 +40,11 @@ func Router(app *gin.Engine, mod *modules.Modules) {
 		AllowFiles:             false,
 	}))
 
+	app.Use(auditFailureMiddleware(mod))
+
 	api(app.Group("/api/v1"), mod)
 	apiSystem(app.Group("/api/v1"), mod)
 	// apiStorage(app.Group("/api/v1"), mod)
-	// apiPublic(app.Group("/api/v1"), mod)
+	apiAuth(app.Group("/api/v1"), mod)
+	apiPublic(app.Group("/api/v1"), mod)
 }

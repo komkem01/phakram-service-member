@@ -14,3 +14,7 @@ CREATE TABLE IF NOT EXISTS zipcodes (
 --bun:split
 
 CREATE INDEX IF NOT EXISTS zipcodes_sub_districts_id_idx ON zipcodes (sub_districts_id);
+
+--bun:split
+
+CREATE UNIQUE INDEX IF NOT EXISTS zipcodes_sub_district_name_uidx ON zipcodes (sub_districts_id, name);

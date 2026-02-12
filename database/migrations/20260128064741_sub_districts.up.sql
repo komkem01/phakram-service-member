@@ -14,3 +14,7 @@ CREATE TABLE IF NOT EXISTS sub_districts (
 --bun:split
 
 CREATE INDEX IF NOT EXISTS sub_districts_district_id_idx ON sub_districts (district_id);
+
+--bun:split
+
+CREATE UNIQUE INDEX IF NOT EXISTS sub_districts_district_name_uidx ON sub_districts (district_id, name);

@@ -13,3 +13,7 @@ CREATE TABLE IF NOT EXISTS provinces (
 --bun:split
 
 CREATE INDEX IF NOT EXISTS provinces_name_idx ON provinces (name);
+
+--bun:split
+
+CREATE UNIQUE INDEX IF NOT EXISTS provinces_name_uidx ON provinces (name);
