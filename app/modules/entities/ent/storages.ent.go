@@ -7,14 +7,14 @@ import (
 	"github.com/uptrace/bun"
 )
 
-type relatedEntityEnum string
+type RelatedEntityEnum string
 
 const (
-	RelatedEntityMemberFile  relatedEntityEnum = "MEMBER_FILE"
-	RelatedEntityOrderFile   relatedEntityEnum = "ORDER_FILE"
-	RelatedEntityProductFile relatedEntityEnum = "PRODUCT_FILE"
-	RelatedEntityPaymentFile relatedEntityEnum = "PAYMENT_FILE"
-	RelatedEntityOther       relatedEntityEnum = "OTHER"
+	RelatedEntityMemberFile  RelatedEntityEnum = "MEMBER_FILE"
+	RelatedEntityOrderFile   RelatedEntityEnum = "ORDER_FILE"
+	RelatedEntityProductFile RelatedEntityEnum = "PRODUCT_FILE"
+	RelatedEntityPaymentFile RelatedEntityEnum = "PAYMENT_FILE"
+	RelatedEntityOther       RelatedEntityEnum = "OTHER"
 )
 
 type StorageEntity struct {
@@ -27,7 +27,7 @@ type StorageEntity struct {
 	FileSize      int64             `bun:"file_size" json:"file_size"`
 	FileType      string            `bun:"file_type" json:"file_type"`
 	IsActive      bool              `bun:"is_active" json:"is_active"`
-	RelatedEntity relatedEntityEnum `bun:"related_entity" json:"related_entity"`
+	RelatedEntity RelatedEntityEnum `bun:"related_entity" json:"related_entity"`
 	UploadedBy    uuid.UUID         `bun:"uploaded_by,type:uuid" json:"uploaded_by"`
 	CreatedAt     time.Time         `bun:"created_at,default:current_timestamp" json:"created_at"`
 	UpdatedAt     time.Time         `bun:"updated_at,default:current_timestamp" json:"updated_at"`

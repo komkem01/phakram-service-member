@@ -4,16 +4,19 @@ import (
 	"log/slog"
 	"phakram/app/modules/auth"
 	"phakram/app/modules/banks"
+	"phakram/app/modules/carts"
 	"phakram/app/modules/districts"
 	"phakram/app/modules/entities"
 	"phakram/app/modules/example"
 	exampletwo "phakram/app/modules/example-two"
 	"phakram/app/modules/genders"
 	"phakram/app/modules/members"
+	"phakram/app/modules/orders"
 	"phakram/app/modules/prefixes"
 	"phakram/app/modules/provinces"
 	"phakram/app/modules/sentry"
 	"phakram/app/modules/specs"
+	"phakram/app/modules/storages"
 	"phakram/app/modules/statuses"
 	subdistricts "phakram/app/modules/sub_districts"
 	"phakram/app/modules/tiers"
@@ -47,8 +50,11 @@ type Modules struct {
 	Zipcodes     *zipcodes.Module
 	Statuses     *statuses.Module
 	Tiers        *tiers.Module
+	Storages     *storages.Module
 	Auth         *auth.Module
 	Members      *members.Module
+	Orders       *orders.Module
+	Carts        *carts.Module
 }
 
 func modulesInit() {
@@ -76,8 +82,21 @@ func modulesInit() {
 	zipcodesMod := zipcodes.New(db.Svc, entitiesMod.Svc)
 	statusesMod := statuses.New(db.Svc, entitiesMod.Svc)
 	tiersMod := tiers.New(db.Svc, entitiesMod.Svc)
+	storagesMod := storages.New(db.Svc, entitiesMod.Svc)
 	authMod := auth.New(db.Svc, conf.AppKey)
-	membersMod := members.New(db.Svc, entitiesMod.Svc, entitiesMod.Svc, entitiesMod.Svc)
+	membersMod := members.New(
+		db.Svc,
+		entitiesMod.Svc,
+		entitiesMod.Svc,
+		entitiesMod.Svc,
+		entitiesMod.Svc,
+		entitiesMod.Svc,
+		entitiesMod.Svc,
+		entitiesMod.Svc,
+		entitiesMod.Svc,
+	)
+	ordersMod := orders.New(db.Svc, entitiesMod.Svc, entitiesMod.Svc)
+	cartsMod := carts.New(db.Svc, entitiesMod.Svc, entitiesMod.Svc)
 	mod = &Modules{
 		Conf:         confMod,
 		Specs:        specsMod,
@@ -97,8 +116,11 @@ func modulesInit() {
 		Zipcodes:     zipcodesMod,
 		Statuses:     statusesMod,
 		Tiers:        tiersMod,
+		Storages:     storagesMod,
 		Auth:         authMod,
 		Members:      membersMod,
+		Orders:       ordersMod,
+		Carts:        cartsMod,
 	}
 
 	log.Infof("all modules initialized")

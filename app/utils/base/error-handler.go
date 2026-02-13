@@ -33,6 +33,15 @@ var errorMappings = map[string]ResponseFunction{
 	"cart items not found": func(ctx *gin.Context, _ string, _ any, params ...map[string]string) error {
 		return ValidateFailed(ctx, "ไม่พบสินค้าในตะกร้า", nil, params...)
 	},
+	"cart item not found": func(ctx *gin.Context, _ string, _ any, params ...map[string]string) error {
+		return ValidateFailed(ctx, "ไม่พบสินค้าในตะกร้า", nil, params...)
+	},
+	"order not found": func(ctx *gin.Context, _ string, _ any, params ...map[string]string) error {
+		return ValidateFailed(ctx, "ไม่พบออเดอร์", nil, params...)
+	},
+	"order item not found": func(ctx *gin.Context, _ string, _ any, params ...map[string]string) error {
+		return ValidateFailed(ctx, "ไม่พบรายการสินค้าในออเดอร์", nil, params...)
+	},
 	"product stock not found": func(ctx *gin.Context, _ string, _ any, params ...map[string]string) error {
 		return ValidateFailed(ctx, "ไม่พบสต็อกสินค้า", nil, params...)
 	},

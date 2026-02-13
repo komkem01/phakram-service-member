@@ -19,6 +19,11 @@ type (
 		bunDB     *database.DatabaseService
 		db        entitiesinf.MemberEntity
 		dbAccount entitiesinf.MemberAccountEntity
+		address   entitiesinf.MemberAddressEntity
+		bank      entitiesinf.MemberBankEntity
+		file      entitiesinf.MemberFileEntity
+		payment   entitiesinf.MemberPaymentEntity
+		wishlist  entitiesinf.MemberWishlistEntity
 		audit     entitiesinf.AuditLogEntity
 	}
 	Controller struct {
@@ -32,16 +37,36 @@ type Options struct {
 	bunDB     *database.DatabaseService
 	db        entitiesinf.MemberEntity
 	dbAccount entitiesinf.MemberAccountEntity
+	address   entitiesinf.MemberAddressEntity
+	bank      entitiesinf.MemberBankEntity
+	file      entitiesinf.MemberFileEntity
+	payment   entitiesinf.MemberPaymentEntity
+	wishlist  entitiesinf.MemberWishlistEntity
 	audit     entitiesinf.AuditLogEntity
 }
 
-func New(bunDB *database.DatabaseService, db entitiesinf.MemberEntity, dbAccount entitiesinf.MemberAccountEntity, audit entitiesinf.AuditLogEntity) *Module {
+func New(
+	bunDB *database.DatabaseService,
+	db entitiesinf.MemberEntity,
+	dbAccount entitiesinf.MemberAccountEntity,
+	address entitiesinf.MemberAddressEntity,
+	bank entitiesinf.MemberBankEntity,
+	file entitiesinf.MemberFileEntity,
+	payment entitiesinf.MemberPaymentEntity,
+	wishlist entitiesinf.MemberWishlistEntity,
+	audit entitiesinf.AuditLogEntity,
+) *Module {
 	tracer := otel.Tracer("members_module")
 	svc := newService(&Options{
 		tracer:    tracer,
 		bunDB:     bunDB,
 		db:        db,
 		dbAccount: dbAccount,
+		address:   address,
+		bank:      bank,
+		file:      file,
+		payment:   payment,
+		wishlist:  wishlist,
 		audit:     audit,
 	})
 	return &Module{
@@ -56,6 +81,11 @@ func newService(opt *Options) *Service {
 		bunDB:     opt.bunDB,
 		db:        opt.db,
 		dbAccount: opt.dbAccount,
+		address:   opt.address,
+		bank:      opt.bank,
+		file:      opt.file,
+		payment:   opt.payment,
+		wishlist:  opt.wishlist,
 		audit:     opt.audit,
 	}
 }
