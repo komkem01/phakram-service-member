@@ -149,6 +149,17 @@ func (s *Service) createRegisterService(ctx context.Context, req *RegisterServic
 			return err
 		}
 
+		memberTx := &ent.MemberTransactionEntity{
+			ID:        uuid.New(),
+			MemberID:  memberID,
+			Action:    ent.MemberActionRegistered,
+			Details:   "member registered",
+			CreatedAt: now,
+		}
+		if _, err := tx.NewInsert().Model(memberTx).Exec(ctx); err != nil {
+			return err
+		}
+
 		return nil
 	})
 	if err != nil {
