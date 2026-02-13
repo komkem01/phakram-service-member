@@ -1,0 +1,1644 @@
+{
+  "info": {
+    "_postman_id": "6a4f8868-97f2-4a50-ad76-f6f94942f2ec",
+    "name": "Phakram Member Service - Member Flow",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "member",
+      "item": [
+        {
+          "name": "admin-login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Save access token', function () {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body).to.have.property('data');",
+                  "  pm.expect(body.data).to.have.property('access_token');",
+                  "  pm.collectionVariables.set('accessToken', body.data.access_token);",
+                  "  pm.environment.set('accessToken', body.data.access_token);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/public/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "public",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Login with admin account to call /api/v1/auth/members endpoints"
+          }
+        },
+        {
+          "name": "register-public",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const memberEmail = `member-${Date.now()}@example.com`;",
+                  "pm.collectionVariables.set('memberEmail', memberEmail);",
+                  "pm.environment.set('memberEmail', memberEmail);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Save created member id', function () {",
+                  "  const body = pm.response.json();",
+                  "  if (body && body.data && body.data.id) {",
+                  "    pm.collectionVariables.set('memberId', body.data.id);",
+                  "    pm.environment.set('memberId', body.data.id);",
+                  "    pm.collectionVariables.set('uploadedBy', body.data.id);",
+                  "    pm.environment.set('uploadedBy', body.data.id);",
+                  "  }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"prefix_id\": \"{{prefixId}}\",\n  \"gender_id\": \"{{genderId}}\",\n  \"firstname_th\": \"สมชาย\",\n  \"lastname_th\": \"ใจดี\",\n  \"firstname_en\": \"Somchai\",\n  \"lastname_en\": \"Jaidee\",\n  \"role\": \"customer\",\n  \"phone\": \"0812345678\",\n  \"email\": \"{{memberEmail}}\",\n  \"password\": \"{{memberPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/public/members/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "public",
+                "members",
+                "register"
+              ]
+            },
+            "description": "Public registration for a new member account"
+          }
+        },
+        {
+          "name": "register-by-admin",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const adminCreatedEmail = `member-admin-${Date.now()}@example.com`;",
+                  "pm.collectionVariables.set('adminCreatedEmail', adminCreatedEmail);",
+                  "pm.environment.set('adminCreatedEmail', adminCreatedEmail);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.execution.setNextRequest('members-list');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"prefix_id\": \"{{prefixId}}\",\n  \"gender_id\": \"{{genderId}}\",\n  \"firstname_th\": \"ผู้ดูแล\",\n  \"lastname_th\": \"สร้างให้\",\n  \"firstname_en\": \"Admin\",\n  \"lastname_en\": \"Created\",\n  \"role\": \"customer\",\n  \"phone\": \"0899999999\",\n  \"email\": \"{{adminCreatedEmail}}\",\n  \"password\": \"{{memberPassword}}\",\n  \"tier_id\": \"{{tierId}}\",\n  \"status_id\": \"{{statusId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/members/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "members",
+                "register"
+              ]
+            },
+            "description": "Admin registration endpoint for creating member with selected tier/status"
+          }
+        },
+        {
+          "name": "members-list",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Save first member id from list', function () {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body).to.have.property('data');",
+                  "  pm.expect(body.data).to.be.an('array');",
+                  "  const targetEmail = pm.collectionVariables.get('adminCreatedEmail') || pm.environment.get('adminCreatedEmail');",
+                  "  const found = body.data.find((x) => x && x.email === targetEmail);",
+                  "  const selected = found || body.data[0];",
+                  "  if (selected && selected.id) {",
+                  "    pm.collectionVariables.set('memberId', selected.id);",
+                  "    pm.environment.set('memberId', selected.id);",
+                  "    pm.collectionVariables.set('uploadedBy', selected.id);",
+                  "    pm.environment.set('uploadedBy', selected.id);",
+                  "  }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/members?page=1&size=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "members"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "size",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Admin list members with pagination"
+          }
+        },
+        {
+          "name": "member-info",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response contains member id', function () {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body).to.have.property('data');",
+                  "  pm.expect(body.data).to.have.property('id');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/members/{{memberId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "members",
+                "{{memberId}}"
+              ]
+            },
+            "description": "Get member details by id"
+          }
+        },
+        {
+          "name": "member-update",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.execution.setNextRequest('member-bank-create');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstname_th\": \"สมชายแก้ไข\",\n  \"lastname_th\": \"ใจดีแก้ไข\",\n  \"firstname_en\": \"SomchaiEdit\",\n  \"lastname_en\": \"JaideeEdit\",\n  \"phone\": \"0810000000\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/members/{{memberId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "members",
+                "{{memberId}}"
+              ]
+            },
+            "description": "Admin update member profile fields"
+          }
+        },
+        {
+          "name": "member-update-email",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const updatedMemberEmail = `member-updated-${Date.now()}@example.com`;",
+                  "pm.collectionVariables.set('updatedMemberEmail', updatedMemberEmail);",
+                  "pm.environment.set('updatedMemberEmail', updatedMemberEmail);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{updatedMemberEmail}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/members/{{memberId}}/email",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "members",
+                "{{memberId}}",
+                "email"
+              ]
+            },
+            "description": "Admin update member account email"
+          }
+        },
+        {
+          "name": "member-update-password",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"password\": \"{{updatedMemberPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/members/{{memberId}}/password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "members",
+                "{{memberId}}",
+                "password"
+              ]
+            },
+            "description": "Admin update member account password"
+          }
+        },
+        {
+          "name": "member-address-create",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"Somchai\",\n  \"last_name\": \"Jaidee\",\n  \"phone\": \"0812345678\",\n  \"is_default\": true,\n  \"address_no\": \"99/9\",\n  \"village\": \"Village 1\",\n  \"alley\": \"Soi 5\",\n  \"sub_district_id\": \"{{subDistrictId}}\",\n  \"district_id\": \"{{districtId}}\",\n  \"province_id\": \"{{provinceId}}\",\n  \"zipcode_id\": \"{{zipcodeId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/members/{{memberId}}/addresses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "members",
+                "{{memberId}}",
+                "addresses"
+              ]
+            }
+          }
+        },
+        {
+          "name": "member-address-info",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/members/{{memberId}}/addresses/{{addressId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "members",
+                "{{memberId}}",
+                "addresses",
+                "{{addressId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "member-address-update",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"Somchai Updated\",\n  \"last_name\": \"Jaidee Updated\",\n  \"phone\": \"0811111111\",\n  \"is_default\": false,\n  \"address_no\": \"100/1\",\n  \"village\": \"Village 2\",\n  \"alley\": \"Soi 9\",\n  \"sub_district_id\": \"{{subDistrictId}}\",\n  \"district_id\": \"{{districtId}}\",\n  \"province_id\": \"{{provinceId}}\",\n  \"zipcode_id\": \"{{zipcodeId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/members/{{memberId}}/addresses/{{addressId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "members",
+                "{{memberId}}",
+                "addresses",
+                "{{addressId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "member-address-delete",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/members/{{memberId}}/addresses/{{addressId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "members",
+                "{{memberId}}",
+                "addresses",
+                "{{addressId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "member-bank-create",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Save created bank row id', function () {",
+                  "  const body = pm.response.json();",
+                  "  if (body && body.data && body.data.id) {",
+                  "    pm.collectionVariables.set('bankRowId', body.data.id);",
+                  "    pm.environment.set('bankRowId', body.data.id);",
+                  "  }",
+                  "  pm.execution.setNextRequest('member-files-list');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bank_id\": \"{{bankId}}\",\n  \"bank_no\": \"1234567890\",\n  \"firstname_th\": \"สมชาย\",\n  \"lastname_th\": \"ใจดี\",\n  \"firstname_en\": \"Somchai\",\n  \"lastname_en\": \"Jaidee\",\n  \"is_default\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/members/{{memberId}}/banks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "members",
+                "{{memberId}}",
+                "banks"
+              ]
+            }
+          }
+        },
+        {
+          "name": "member-bank-info",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/members/{{memberId}}/banks/{{bankRowId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "members",
+                "{{memberId}}",
+                "banks",
+                "{{bankRowId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "member-bank-update",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bank_id\": \"{{bankId}}\",\n  \"bank_no\": \"0987654321\",\n  \"firstname_th\": \"สมชายแก้ไข\",\n  \"lastname_th\": \"ใจดีแก้ไข\",\n  \"firstname_en\": \"SomchaiEdit\",\n  \"lastname_en\": \"JaideeEdit\",\n  \"is_default\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/members/{{memberId}}/banks/{{bankRowId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "members",
+                "{{memberId}}",
+                "banks",
+                "{{bankRowId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "member-bank-delete",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/members/{{memberId}}/banks/{{bankRowId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "members",
+                "{{memberId}}",
+                "banks",
+                "{{bankRowId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "member-files-list",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body && Array.isArray(body.data) && body.data.length > 0 && body.data[0].id) {",
+                  "  pm.collectionVariables.set('fileRowId', body.data[0].id);",
+                  "  pm.environment.set('fileRowId', body.data[0].id);",
+                  "  pm.execution.setNextRequest('member-file-info');",
+                  "} else {",
+                  "  pm.execution.setNextRequest('member-file-create');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/members/{{memberId}}/files?page=1&size=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "members",
+                "{{memberId}}",
+                "files"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "size",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "member-file-create",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Save created member file row id', function () {",
+                  "  const body = pm.response.json();",
+                  "  if (body && body.data && body.data.id) {",
+                  "    pm.collectionVariables.set('fileRowId', body.data.id);",
+                  "    pm.environment.set('fileRowId', body.data.id);",
+                  "  }",
+                  "  pm.execution.setNextRequest('member-files-list');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"file_id\": \"{{fileId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/members/{{memberId}}/files",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "members",
+                "{{memberId}}",
+                "files"
+              ]
+            }
+          }
+        },
+        {
+          "name": "member-file-info",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/members/{{memberId}}/files/{{fileRowId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "members",
+                "{{memberId}}",
+                "files",
+                "{{fileRowId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "member-file-update",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"file_id\": \"{{fileId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/members/{{memberId}}/files/{{fileRowId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "members",
+                "{{memberId}}",
+                "files",
+                "{{fileRowId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "member-file-delete",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/members/{{memberId}}/files/{{fileRowId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "members",
+                "{{memberId}}",
+                "files",
+                "{{fileRowId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "member-payment-create",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Save created member payment id', function () {",
+                  "  const body = pm.response.json();",
+                  "  if (body && body.data && body.data.id) {",
+                  "    pm.collectionVariables.set('memberPaymentId', body.data.id);",
+                  "    pm.environment.set('memberPaymentId', body.data.id);",
+                  "  }",
+                  "  pm.execution.setNextRequest('member-wishlist-list');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"payment_id\": \"{{paymentId}}\",\n  \"quantity\": 1,\n  \"price\": \"100.00\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/members/{{memberId}}/payments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "members",
+                "{{memberId}}",
+                "payments"
+              ]
+            }
+          }
+        },
+        {
+          "name": "member-payment-info",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/members/{{memberId}}/payments/{{memberPaymentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "members",
+                "{{memberId}}",
+                "payments",
+                "{{memberPaymentId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "member-payment-update",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"payment_id\": \"{{paymentId}}\",\n  \"quantity\": 2,\n  \"price\": \"200.00\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/members/{{memberId}}/payments/{{memberPaymentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "members",
+                "{{memberId}}",
+                "payments",
+                "{{memberPaymentId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "member-payment-delete",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/members/{{memberId}}/payments/{{memberPaymentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "members",
+                "{{memberId}}",
+                "payments",
+                "{{memberPaymentId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "member-wishlist-list",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body && Array.isArray(body.data) && body.data.length > 0 && body.data[0].id) {",
+                  "  pm.collectionVariables.set('wishlistId', body.data[0].id);",
+                  "  pm.environment.set('wishlistId', body.data[0].id);",
+                  "  pm.execution.setNextRequest('member-wishlist-info');",
+                  "} else {",
+                  "  pm.execution.setNextRequest('member-wishlist-create');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/members/{{memberId}}/wishlist?page=1&size=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "members",
+                "{{memberId}}",
+                "wishlist"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "size",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "member-wishlist-create",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Save created wishlist id', function () {",
+                  "  const body = pm.response.json();",
+                  "  if (body && body.data && body.data.id) {",
+                  "    pm.collectionVariables.set('wishlistId', body.data.id);",
+                  "    pm.environment.set('wishlistId', body.data.id);",
+                  "  }",
+                  "  pm.execution.setNextRequest('member-wishlist-list');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"product_id\": \"{{productId}}\",\n  \"quantity\": 1,\n  \"price_per_unit\": \"100.00\",\n  \"total_item_amount\": \"100.00\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/members/{{memberId}}/wishlist",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "members",
+                "{{memberId}}",
+                "wishlist"
+              ]
+            }
+          }
+        },
+        {
+          "name": "member-wishlist-info",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/members/{{memberId}}/wishlist/{{wishlistId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "members",
+                "{{memberId}}",
+                "wishlist",
+                "{{wishlistId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "member-wishlist-update",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"product_id\": \"{{productId}}\",\n  \"quantity\": 2,\n  \"price_per_unit\": \"120.00\",\n  \"total_item_amount\": \"240.00\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/members/{{memberId}}/wishlist/{{wishlistId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "members",
+                "{{memberId}}",
+                "wishlist",
+                "{{wishlistId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "member-wishlist-delete",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.execution.setNextRequest('storage-list-by-ref');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/members/{{memberId}}/wishlist/{{wishlistId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "members",
+                "{{memberId}}",
+                "wishlist",
+                "{{wishlistId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "member-delete",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/members/{{memberId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "members",
+                "{{memberId}}"
+              ]
+            },
+            "description": "Admin delete member by id"
+          }
+        }
+      ]
+    },
+    {
+      "name": "storage",
+      "item": [
+        {
+          "name": "storage-list-by-ref",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body && Array.isArray(body.data) && body.data.length > 0 && body.data[0].id) {",
+                  "  pm.collectionVariables.set('storageId', body.data[0].id);",
+                  "  pm.environment.set('storageId', body.data[0].id);",
+                  "  pm.execution.setNextRequest('storage-info');",
+                  "} else {",
+                  "  pm.execution.setNextRequest('storage-create');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/storages?ref_id={{memberId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "storages"
+              ],
+              "query": [
+                {
+                  "key": "ref_id",
+                  "value": "{{memberId}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "storage-create",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Save created storage id', function () {",
+                  "  const body = pm.response.json();",
+                  "  if (body && body.data && body.data.id) {",
+                  "    pm.collectionVariables.set('storageId', body.data.id);",
+                  "    pm.environment.set('storageId', body.data.id);",
+                  "  }",
+                  "  pm.execution.setNextRequest('storage-list-by-ref');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ref_id\": \"{{memberId}}\",\n  \"file_name\": \"example.pdf\",\n  \"file_path\": \"/uploads/example.pdf\",\n  \"file_size\": 12345,\n  \"file_type\": \"application/pdf\",\n  \"related_entity\": \"MEMBER_FILE\",\n  \"uploaded_by\": \"{{uploadedBy}}\",\n  \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/storages",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "storages"
+              ]
+            }
+          }
+        },
+        {
+          "name": "storage-info",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/storages/{{storageId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "storages",
+                "{{storageId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "storage-update-status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"is_active\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/storages/{{storageId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "storages",
+                "{{storageId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "storage-delete",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.execution.setNextRequest('member-delete');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/storages/{{storageId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "storages",
+                "{{storageId}}"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8081"
+    },
+    {
+      "key": "adminEmail",
+      "value": "admin@example.com"
+    },
+    {
+      "key": "adminPassword",
+      "value": "P@ssw0rd123"
+    },
+    {
+      "key": "accessToken",
+      "value": ""
+    },
+    {
+      "key": "prefixId",
+      "value": "00000000-0000-0000-0000-000000000001"
+    },
+    {
+      "key": "genderId",
+      "value": "00000000-0000-0000-0000-000000000001"
+    },
+    {
+      "key": "tierId",
+      "value": ""
+    },
+    {
+      "key": "statusId",
+      "value": ""
+    },
+    {
+      "key": "memberPassword",
+      "value": "P@ssw0rd123"
+    },
+    {
+      "key": "updatedMemberPassword",
+      "value": "N3wP@ssw0rd123"
+    },
+    {
+      "key": "memberId",
+      "value": ""
+    },
+    {
+      "key": "memberEmail",
+      "value": "member01@example.com"
+    },
+    {
+      "key": "adminCreatedEmail",
+      "value": "member-admin@example.com"
+    },
+    {
+      "key": "updatedMemberEmail",
+      "value": "member-updated@example.com"
+    },
+    {
+      "key": "addressId",
+      "value": ""
+    },
+    {
+      "key": "bankId",
+      "value": ""
+    },
+    {
+      "key": "bankRowId",
+      "value": ""
+    },
+    {
+      "key": "fileId",
+      "value": ""
+    },
+    {
+      "key": "fileRowId",
+      "value": ""
+    },
+    {
+      "key": "paymentId",
+      "value": ""
+    },
+    {
+      "key": "memberPaymentId",
+      "value": ""
+    },
+    {
+      "key": "productId",
+      "value": ""
+    },
+    {
+      "key": "wishlistId",
+      "value": ""
+    },
+    {
+      "key": "subDistrictId",
+      "value": ""
+    },
+    {
+      "key": "districtId",
+      "value": ""
+    },
+    {
+      "key": "provinceId",
+      "value": ""
+    },
+    {
+      "key": "zipcodeId",
+      "value": ""
+    },
+    {
+      "key": "uploadedBy",
+      "value": ""
+    },
+    {
+      "key": "storageId",
+      "value": ""
+    }
+  ]
+}

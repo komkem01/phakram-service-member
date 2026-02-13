@@ -6,63 +6,177 @@
   },
   "item": [
     {
-      "name": "Auth - Login",
-      "event": [
+      "name": "auth",
+      "item": [
         {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('Status code is 200', function () {",
-              "  pm.response.to.have.status(200);",
-              "});",
-              "",
-              "pm.test('Save access and refresh tokens', function () {",
-              "  const responseBodyJson = pm.response.json();",
-              "  pm.expect(responseBodyJson).to.have.property('data');",
-              "  pm.expect(responseBodyJson.data).to.have.property('access_token');",
-              "  pm.expect(responseBodyJson.data).to.have.property('refresh_token');",
-              "",
-              "  pm.collectionVariables.set('accessToken', responseBodyJson.data.access_token);",
-              "  pm.collectionVariables.set('refreshToken', responseBodyJson.data.refresh_token);",
-              "  pm.environment.set('accessToken', responseBodyJson.data.access_token);",
-              "  pm.environment.set('refreshToken', responseBodyJson.data.refresh_token);",
-              "});"
-            ]
-          }
-        }
-      ],
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}"
-        },
-        "url": {
-          "raw": "{{baseUrl}}/api/v1/public/auth/login",
-          "host": [
-            "{{baseUrl}}"
+          "name": "register",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const registerEmail = `member-${Date.now()}@example.com`;",
+                  "pm.collectionVariables.set('registerEmail', registerEmail);",
+                  "pm.environment.set('registerEmail', registerEmail);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Save register email for login flow', function () {",
+                  "  const registerEmail = pm.collectionVariables.get('registerEmail');",
+                  "  pm.expect(registerEmail).to.be.a('string').and.not.empty;",
+                  "  pm.collectionVariables.set('email', registerEmail);",
+                  "  pm.environment.set('email', registerEmail);",
+                  "});"
+                ]
+              }
+            }
           ],
-          "path": [
-            "api",
-            "v1",
-            "public",
-            "auth",
-            "login"
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"prefix_id\": \"{{prefixId}}\",\n  \"gender_id\": \"{{genderId}}\",\n  \"firstname_th\": \"สมชาย\",\n  \"lastname_th\": \"ใจดี\",\n  \"firstname_en\": \"Somchai\",\n  \"lastname_en\": \"Jaidee\",\n  \"role\": \"customer\",\n  \"phone\": \"0812345678\",\n  \"email\": \"{{registerEmail}}\",\n  \"password\": \"{{password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/public/members/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "public",
+                "members",
+                "register"
+              ]
+            },
+            "description": "Register member account using public endpoint"
+          },
+          "response": [
+            {
+              "name": "200 OK - Register Success",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"prefix_id\": \"{{prefixId}}\",\n  \"gender_id\": \"{{genderId}}\",\n  \"firstname_th\": \"สมชาย\",\n  \"lastname_th\": \"ใจดี\",\n  \"firstname_en\": \"Somchai\",\n  \"lastname_en\": \"Jaidee\",\n  \"role\": \"customer\",\n  \"phone\": \"0812345678\",\n  \"email\": \"{{registerEmail}}\",\n  \"password\": \"{{password}}\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/public/members/register",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "public",
+                    "members",
+                    "register"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"code\": \"200\",\n  \"message\": \"success\",\n  \"data\": null\n}"
+            },
+            {
+              "name": "400 Bad Request - Invalid Payload",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"prefix_id\": \"invalid-uuid\",\n  \"gender_id\": \"invalid-uuid\",\n  \"firstname_th\": \"สมชาย\",\n  \"lastname_th\": \"ใจดี\",\n  \"firstname_en\": \"Somchai\",\n  \"lastname_en\": \"Jaidee\",\n  \"phone\": \"0812345678\",\n  \"email\": \"bad-email\",\n  \"password\": \"123\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/public/members/register",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "public",
+                    "members",
+                    "register"
+                  ]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"code\": \"400\",\n  \"message\": \"bad request\",\n  \"data\": null\n}"
+            }
           ]
         },
-        "description": "Login with email + password to receive access_token and refresh_token"
-      },
-      "response": [
         {
-          "name": "200 OK - Login Success",
-          "originalRequest": {
+          "name": "login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Save access and refresh tokens', function () {",
+                  "  const responseBodyJson = pm.response.json();",
+                  "  pm.expect(responseBodyJson).to.have.property('data');",
+                  "  pm.expect(responseBodyJson.data).to.have.property('access_token');",
+                  "  pm.expect(responseBodyJson.data).to.have.property('refresh_token');",
+                  "",
+                  "  pm.collectionVariables.set('accessToken', responseBodyJson.data.access_token);",
+                  "  pm.collectionVariables.set('refreshToken', responseBodyJson.data.refresh_token);",
+                  "  pm.environment.set('accessToken', responseBodyJson.data.access_token);",
+                  "  pm.environment.set('refreshToken', responseBodyJson.data.refresh_token);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
             "method": "POST",
             "header": [
               {
@@ -86,118 +200,118 @@
                 "auth",
                 "login"
               ]
-            }
-          },
-          "status": "OK",
-          "code": 200,
-          "_postman_previewlanguage": "json",
-          "header": [
-            {
-              "key": "Content-Type",
-              "value": "application/json"
-            }
-          ],
-          "body": "{\n  \"code\": \"200\",\n  \"message\": \"success\",\n  \"data\": {\n    \"access_token\": \"<JWT_ACCESS_TOKEN>\",\n    \"refresh_token\": \"<JWT_REFRESH_TOKEN>\",\n    \"token_type\": \"Bearer\",\n    \"access_expires_at\": 1760150400,\n    \"refresh_expires_at\": 1760755200\n  }\n}"
-        },
-        {
-          "name": "401 Unauthorized - Invalid Credentials",
-          "originalRequest": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"member01@example.com\",\n  \"password\": \"wrong-password\"\n}"
             },
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/public/auth/login",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "public",
-                "auth",
-                "login"
-              ]
-            }
+            "description": "Login with email + password to receive access_token and refresh_token"
           },
-          "status": "Unauthorized",
-          "code": 401,
-          "_postman_previewlanguage": "json",
-          "header": [
+          "response": [
             {
-              "key": "Content-Type",
-              "value": "application/json"
+              "name": "200 OK - Login Success",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/public/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "public",
+                    "auth",
+                    "login"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"code\": \"200\",\n  \"message\": \"success\",\n  \"data\": {\n    \"access_token\": \"<JWT_ACCESS_TOKEN>\",\n    \"refresh_token\": \"<JWT_REFRESH_TOKEN>\",\n    \"token_type\": \"Bearer\",\n    \"access_expires_at\": 1760150400,\n    \"refresh_expires_at\": 1760755200\n  }\n}"
+            },
+            {
+              "name": "401 Unauthorized - Invalid Credentials",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"member01@example.com\",\n  \"password\": \"wrong-password\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/public/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "public",
+                    "auth",
+                    "login"
+                  ]
+                }
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"code\": \"401\",\n  \"message\": \"ข้อมูลรับรองไม่ถูกต้อง\",\n  \"data\": null\n}"
             }
-          ],
-          "body": "{\n  \"code\": \"401\",\n  \"message\": \"ข้อมูลรับรองไม่ถูกต้อง\",\n  \"data\": null\n}"
-        }
-      ]
-    },
-    {
-      "name": "Auth - Refresh Token",
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('Status code is 200', function () {",
-              "  pm.response.to.have.status(200);",
-              "});",
-              "",
-              "pm.test('Rotate access and refresh tokens', function () {",
-              "  const responseBodyJson = pm.response.json();",
-              "  pm.expect(responseBodyJson).to.have.property('data');",
-              "  pm.expect(responseBodyJson.data).to.have.property('access_token');",
-              "  pm.expect(responseBodyJson.data).to.have.property('refresh_token');",
-              "",
-              "  pm.collectionVariables.set('accessToken', responseBodyJson.data.access_token);",
-              "  pm.collectionVariables.set('refreshToken', responseBodyJson.data.refresh_token);",
-              "  pm.environment.set('accessToken', responseBodyJson.data.access_token);",
-              "  pm.environment.set('refreshToken', responseBodyJson.data.refresh_token);",
-              "});"
-            ]
-          }
-        }
-      ],
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"refresh_token\": \"{{refreshToken}}\"\n}"
-        },
-        "url": {
-          "raw": "{{baseUrl}}/api/v1/public/auth/refresh",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "api",
-            "v1",
-            "public",
-            "auth",
-            "refresh"
           ]
         },
-        "description": "Refresh and rotate token pair using refresh_token"
-      },
-      "response": [
         {
-          "name": "200 OK - Refresh Success",
-          "originalRequest": {
+          "name": "refresh",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Rotate access and refresh tokens', function () {",
+                  "  const responseBodyJson = pm.response.json();",
+                  "  pm.expect(responseBodyJson).to.have.property('data');",
+                  "  pm.expect(responseBodyJson.data).to.have.property('access_token');",
+                  "  pm.expect(responseBodyJson.data).to.have.property('refresh_token');",
+                  "",
+                  "  pm.collectionVariables.set('accessToken', responseBodyJson.data.access_token);",
+                  "  pm.collectionVariables.set('refreshToken', responseBodyJson.data.refresh_token);",
+                  "  pm.environment.set('accessToken', responseBodyJson.data.access_token);",
+                  "  pm.environment.set('refreshToken', responseBodyJson.data.refresh_token);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
             "method": "POST",
             "header": [
               {
@@ -221,108 +335,113 @@
                 "auth",
                 "refresh"
               ]
-            }
-          },
-          "status": "OK",
-          "code": 200,
-          "_postman_previewlanguage": "json",
-          "header": [
-            {
-              "key": "Content-Type",
-              "value": "application/json"
-            }
-          ],
-          "body": "{\n  \"code\": \"200\",\n  \"message\": \"success\",\n  \"data\": {\n    \"access_token\": \"<JWT_ACCESS_TOKEN_NEW>\",\n    \"refresh_token\": \"<JWT_REFRESH_TOKEN_NEW>\",\n    \"token_type\": \"Bearer\",\n    \"access_expires_at\": 1760150400,\n    \"refresh_expires_at\": 1760755200\n  }\n}"
-        },
-        {
-          "name": "401 Unauthorized - Invalid Token",
-          "originalRequest": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"refresh_token\": \"invalid-or-expired-token\"\n}"
             },
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/public/auth/refresh",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "public",
-                "auth",
-                "refresh"
-              ]
-            }
+            "description": "Refresh and rotate token pair using refresh_token"
           },
-          "status": "Unauthorized",
-          "code": 401,
-          "_postman_previewlanguage": "json",
-          "header": [
+          "response": [
             {
-              "key": "Content-Type",
-              "value": "application/json"
+              "name": "200 OK - Refresh Success",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"refresh_token\": \"{{refreshToken}}\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/public/auth/refresh",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "public",
+                    "auth",
+                    "refresh"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"code\": \"200\",\n  \"message\": \"success\",\n  \"data\": {\n    \"access_token\": \"<JWT_ACCESS_TOKEN_NEW>\",\n    \"refresh_token\": \"<JWT_REFRESH_TOKEN_NEW>\",\n    \"token_type\": \"Bearer\",\n    \"access_expires_at\": 1760150400,\n    \"refresh_expires_at\": 1760755200\n  }\n}"
+            },
+            {
+              "name": "401 Unauthorized - Invalid Token",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"refresh_token\": \"invalid-or-expired-token\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/public/auth/refresh",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "public",
+                    "auth",
+                    "refresh"
+                  ]
+                }
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"code\": \"401\",\n  \"message\": \"โทเค็นไม่ถูกต้อง\",\n  \"data\": null\n}"
             }
-          ],
-          "body": "{\n  \"code\": \"401\",\n  \"message\": \"โทเค็นไม่ถูกต้อง\",\n  \"data\": null\n}"
-        }
-      ]
-    },
-    {
-      "name": "Auth - Get Me",
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('Status code is 200', function () {",
-              "  pm.response.to.have.status(200);",
-              "});",
-              "",
-              "pm.test('Response contains member profile', function () {",
-              "  const responseBodyJson = pm.response.json();",
-              "  pm.expect(responseBodyJson).to.have.property('data');",
-              "  pm.expect(responseBodyJson.data).to.have.property('member_id');",
-              "  pm.expect(responseBodyJson.data).to.have.property('email');",
-              "});"
-            ]
-          }
-        }
-      ],
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{accessToken}}"
-          }
-        ],
-        "url": {
-          "raw": "{{baseUrl}}/api/v1/auth/me",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "api",
-            "v1",
-            "auth",
-            "me"
           ]
         },
-        "description": "Get member profile from access token"
-      },
-      "response": [
         {
-          "name": "200 OK - Me Success",
-          "originalRequest": {
+          "name": "me",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response contains member profile', function () {",
+                  "  const responseBodyJson = pm.response.json();",
+                  "  pm.expect(responseBodyJson).to.have.property('data');",
+                  "  pm.expect(responseBodyJson.data).to.have.property('member_id');",
+                  "  pm.expect(responseBodyJson.data).to.have.property('email');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
             "method": "GET",
             "header": [
               {
@@ -341,47 +460,74 @@
                 "auth",
                 "me"
               ]
-            }
+            },
+            "description": "Get member profile from access token"
           },
-          "status": "OK",
-          "code": 200,
-          "_postman_previewlanguage": "json",
-          "header": [
+          "response": [
             {
-              "key": "Content-Type",
-              "value": "application/json"
-            }
-          ],
-          "body": "{\n  \"code\": \"200\",\n  \"message\": \"success\",\n  \"data\": {\n    \"member_id\": \"7dc6a5f7-f77b-4f4f-b7f2-a63a2575e887\",\n    \"member_no\": \"MBR00000001\",\n    \"email\": \"member01@example.com\",\n    \"role\": \"customer\",\n    \"is_admin\": false,\n    \"firstname_th\": \"สมชาย\",\n    \"lastname_th\": \"ใจดี\",\n    \"firstname_en\": \"Somchai\",\n    \"lastname_en\": \"Jaidee\",\n    \"phone\": \"0812345678\",\n    \"last_login\": 1760064000,\n    \"registration\": 1759962000\n  }\n}"
-        },
-        {
-          "name": "401 Unauthorized - Missing/Invalid Access Token",
-          "originalRequest": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/auth/me",
-              "host": [
-                "{{baseUrl}}"
+              "name": "200 OK - Me Success",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/auth/me",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "me"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
               ],
-              "path": [
-                "api",
-                "v1",
-                "auth",
-                "me"
-              ]
-            }
-          },
-          "status": "Unauthorized",
-          "code": 401,
-          "_postman_previewlanguage": "json",
-          "header": [
+              "body": "{\n  \"code\": \"200\",\n  \"message\": \"success\",\n  \"data\": {\n    \"member_id\": \"7dc6a5f7-f77b-4f4f-b7f2-a63a2575e887\",\n    \"member_no\": \"MBR00000001\",\n    \"email\": \"member01@example.com\",\n    \"role\": \"customer\",\n    \"is_admin\": false,\n    \"firstname_th\": \"สมชาย\",\n    \"lastname_th\": \"ใจดี\",\n    \"firstname_en\": \"Somchai\",\n    \"lastname_en\": \"Jaidee\",\n    \"phone\": \"0812345678\",\n    \"last_login\": 1760064000,\n    \"registration\": 1759962000\n  }\n}"
+            },
             {
-              "key": "Content-Type",
-              "value": "application/json"
+              "name": "401 Unauthorized - Missing/Invalid Access Token",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/auth/me",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "me"
+                  ]
+                }
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"code\": \"401\",\n  \"message\": \"unauthorized\",\n  \"data\": null\n}"
             }
-          ],
-          "body": "{\n  \"code\": \"401\",\n  \"message\": \"unauthorized\",\n  \"data\": null\n}"
+          ]
         }
       ]
     }
@@ -396,8 +542,20 @@
       "value": "member01@example.com"
     },
     {
+      "key": "registerEmail",
+      "value": "member01@example.com"
+    },
+    {
       "key": "password",
       "value": "P@ssw0rd123"
+    },
+    {
+      "key": "prefixId",
+      "value": "00000000-0000-0000-0000-000000000001"
+    },
+    {
+      "key": "genderId",
+      "value": "00000000-0000-0000-0000-000000000001"
     },
     {
       "key": "accessToken",

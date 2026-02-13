@@ -98,32 +98,32 @@ func apiSystem(r *gin.RouterGroup, mod *modules.Modules) {
 	}
 }
 
-// func apiStorage(r *gin.RouterGroup, mod *modules.Modules) {
-// 	auth := r.Group("/auth", mod.Auth.Ctl.AuthMiddleware())
-// 	{
-// 		storages := auth.Group("/storages")
-// 		{
-// 			storages.GET("/", mod.Storages.Ctl.StoragesList)
-// 			storages.GET("/:id", mod.Storages.Ctl.StoragesInfo)
-// 			storages.POST("/", mod.Storages.Ctl.CreateStorageController)
-// 			storages.PATCH("/:id", mod.Storages.Ctl.StoragesUpdate)
-// 			storages.DELETE("/:id", mod.Storages.Ctl.StoragesDelete)
-// 		}
-// 	}
-// }
+func apiStorage(r *gin.RouterGroup, mod *modules.Modules) {
+	auth := r.Group("/auth", mod.Auth.Ctl.AuthMiddleware())
+	{
+		storages := auth.Group("/storages")
+		{
+			storages.GET("/", mod.Storages.Ctl.StoragesList)
+			storages.GET("/:id", mod.Storages.Ctl.StoragesInfo)
+			storages.POST("/", mod.Storages.Ctl.CreateStorageController)
+			storages.PATCH("/:id", mod.Storages.Ctl.StoragesUpdate)
+			storages.DELETE("/:id", mod.Storages.Ctl.StoragesDelete)
+		}
+	}
+}
 
 func apiPublic(r *gin.RouterGroup, mod *modules.Modules) {
-	Public := r.Group("/public")
+	public := r.Group("/public")
 	{
-		auth := Public.Group("/auth")
+		auth := public.Group("/auth")
 		{
 			auth.POST("/login", mod.Auth.Ctl.LoginController)
 			auth.POST("/refresh", mod.Auth.Ctl.RefreshTokenController)
 		}
 
-		register := Public.Group("/members")
+		members := public.Group("/members")
 		{
-			register.POST("/register", mod.Members.Ctl.CreateRegisterController)
+			members.POST("/register", mod.Members.Ctl.CreateRegisterController)
 		}
 	}
 }
@@ -137,11 +137,83 @@ func apiAuth(r *gin.RouterGroup, mod *modules.Modules) {
 		{
 			members.GET("/", mod.Members.Ctl.ListController)
 			members.GET("/:id", mod.Members.Ctl.InfoController)
+			members.POST("/register", mod.Members.Ctl.CreateRegisterByAdminController)
 			members.PATCH("/:id", mod.Members.Ctl.UpdateController)
 			members.PATCH("/:id/email", mod.Members.Ctl.UpdateEmailController)
 			members.PATCH("/:id/password", mod.Members.Ctl.UpdatePasswordController)
 			members.DELETE("/:id", mod.Members.Ctl.DeleteController)
-			members.POST("/register", mod.Members.Ctl.CreateRegisterByAdminController)
+		}
+
+		addresses := auth.Group("/members/:id/addresses")
+		{
+			addresses.GET("/:address_id", mod.Members.Ctl.InfoMemberAddressController)
+			addresses.POST("/", mod.Members.Ctl.CreateMemberAddressController)
+			addresses.PATCH("/:address_id", mod.Members.Ctl.UpdateMemberAddressController)
+			addresses.DELETE("/:address_id", mod.Members.Ctl.DeleteMemberAddressController)
+		}
+
+		banks := auth.Group("/members/:id/banks")
+		{
+			banks.GET("/:bank_id", mod.Members.Ctl.InfoMemberBankController)
+			banks.POST("/", mod.Members.Ctl.CreateMemberBankController)
+			banks.PATCH("/:bank_id", mod.Members.Ctl.UpdateMemberBankController)
+			banks.DELETE("/:bank_id", mod.Members.Ctl.DeleteMemberBankController)
+		}
+
+		files := auth.Group("/members/:id/files")
+		{
+			files.GET("/", mod.Members.Ctl.ListMemberFilesController)
+			files.GET("/:file_row_id", mod.Members.Ctl.InfoMemberFileController)
+			files.POST("/", mod.Members.Ctl.CreateMemberFileController)
+			files.PATCH("/:file_row_id", mod.Members.Ctl.UpdateMemberFileController)
+			files.DELETE("/:file_row_id", mod.Members.Ctl.DeleteMemberFileController)
+		}
+
+		payments := auth.Group("/members/:id/payments")
+		{
+			payments.GET("/:member_payment_id", mod.Members.Ctl.InfoMemberPaymentController)
+			payments.POST("/", mod.Members.Ctl.CreateMemberPaymentController)
+			payments.PATCH("/:member_payment_id", mod.Members.Ctl.UpdateMemberPaymentController)
+			payments.DELETE("/:member_payment_id", mod.Members.Ctl.DeleteMemberPaymentController)
+		}
+
+		wishlist := auth.Group("/members/:id/wishlist")
+		{
+			wishlist.GET("/", mod.Members.Ctl.ListMemberWishlistController)
+			wishlist.GET("/:wishlist_id", mod.Members.Ctl.InfoMemberWishlistController)
+			wishlist.POST("/", mod.Members.Ctl.CreateMemberWishlistController)
+			wishlist.PATCH("/:wishlist_id", mod.Members.Ctl.UpdateMemberWishlistController)
+			wishlist.DELETE("/:wishlist_id", mod.Members.Ctl.DeleteMemberWishlistController)
+		}
+
+		orders := auth.Group("/orders")
+		{
+			orders.GET("/", mod.Orders.Ctl.ListOrderController)
+			orders.GET("/:id", mod.Orders.Ctl.InfoOrderController)
+			orders.POST("/", mod.Orders.Ctl.CreateOrderController)
+			orders.PATCH("/:id", mod.Orders.Ctl.UpdateOrderController)
+			orders.DELETE("/:id", mod.Orders.Ctl.DeleteOrderController)
+
+			orders.GET("/:id/items", mod.Orders.Ctl.ListOrderItemController)
+			orders.GET("/:id/items/:item_id", mod.Orders.Ctl.InfoOrderItemController)
+			orders.POST("/:id/items", mod.Orders.Ctl.CreateOrderItemController)
+			orders.PATCH("/:id/items/:item_id", mod.Orders.Ctl.UpdateOrderItemController)
+			orders.DELETE("/:id/items/:item_id", mod.Orders.Ctl.DeleteOrderItemController)
+		}
+
+		carts := auth.Group("/carts")
+		{
+			carts.GET("/", mod.Carts.Ctl.ListCartController)
+			carts.GET("/:id", mod.Carts.Ctl.InfoCartController)
+			carts.POST("/", mod.Carts.Ctl.CreateCartController)
+			carts.PATCH("/:id", mod.Carts.Ctl.UpdateCartController)
+			carts.DELETE("/:id", mod.Carts.Ctl.DeleteCartController)
+
+			carts.GET("/:id/items", mod.Carts.Ctl.ListCartItemController)
+			carts.GET("/:id/items/:item_id", mod.Carts.Ctl.InfoCartItemController)
+			carts.POST("/:id/items", mod.Carts.Ctl.CreateCartItemController)
+			carts.PATCH("/:id/items/:item_id", mod.Carts.Ctl.UpdateCartItemController)
+			carts.DELETE("/:id/items/:item_id", mod.Carts.Ctl.DeleteCartItemController)
 		}
 	}
 }
