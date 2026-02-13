@@ -1,7 +1,6 @@
 package members
 
 import (
-	"phakram/app/modules/auth"
 	"phakram/app/utils"
 	"phakram/app/utils/base"
 	"phakram/config/i18n"
@@ -23,17 +22,52 @@ type CreateMemberPaymentControllerRequest struct {
 
 type UpdateMemberPaymentControllerRequest = CreateMemberPaymentControllerRequest
 
+type ListMemberPaymentsControllerRequest struct {
+	base.RequestPaginate
+}
+
+func (c *Controller) ListMemberPaymentsController(ctx *gin.Context) {
+	span, _ := utils.LogSpanFromGin(ctx)
+	span.AddEvent(`members.ctl.payment.list.start`)
+
+	memberID, ok := c.parseMemberID(ctx)
+	if !ok {
+		return
+	}
+
+	if !c.ensureAdminOrSelf(ctx, memberID) {
+		return
+	}
+
+	var req ListMemberPaymentsControllerRequest
+	if err := ctx.ShouldBind(&req); err != nil {
+		base.BadRequest(ctx, i18n.BadRequest, nil)
+		return
+	}
+
+	data, page, err := c.svc.ListMemberPaymentsService(ctx.Request.Context(), &ListMemberPaymentsServiceRequest{
+		RequestPaginate: req.RequestPaginate,
+		MemberID:        memberID,
+	})
+	if err != nil {
+		base.HandleError(ctx, err)
+		return
+	}
+
+	span.AddEvent(`members.ctl.payment.list.success`)
+	base.Paginate(ctx, data, page)
+}
+
 func (c *Controller) CreateMemberPaymentController(ctx *gin.Context) {
 	span, _ := utils.LogSpanFromGin(ctx)
 	span.AddEvent(`members.ctl.payment.create.start`)
 
-	if !auth.GetIsAdmin(ctx) {
-		base.Forbidden(ctx, i18n.Forbidden, nil)
+	memberID, ok := c.parseMemberID(ctx)
+	if !ok {
 		return
 	}
 
-	memberID, ok := c.parseMemberID(ctx)
-	if !ok {
+	if !c.ensureAdminOrSelf(ctx, memberID) {
 		return
 	}
 
@@ -68,13 +102,12 @@ func (c *Controller) InfoMemberPaymentController(ctx *gin.Context) {
 	span, _ := utils.LogSpanFromGin(ctx)
 	span.AddEvent(`members.ctl.payment.info.start`)
 
-	if !auth.GetIsAdmin(ctx) {
-		base.Forbidden(ctx, i18n.Forbidden, nil)
+	memberID, rowID, ok := c.parseMemberPaymentURI(ctx)
+	if !ok {
 		return
 	}
 
-	memberID, rowID, ok := c.parseMemberPaymentURI(ctx)
-	if !ok {
+	if !c.ensureAdminOrSelf(ctx, memberID) {
 		return
 	}
 
@@ -92,13 +125,12 @@ func (c *Controller) UpdateMemberPaymentController(ctx *gin.Context) {
 	span, _ := utils.LogSpanFromGin(ctx)
 	span.AddEvent(`members.ctl.payment.update.start`)
 
-	if !auth.GetIsAdmin(ctx) {
-		base.Forbidden(ctx, i18n.Forbidden, nil)
+	memberID, rowID, ok := c.parseMemberPaymentURI(ctx)
+	if !ok {
 		return
 	}
 
-	memberID, rowID, ok := c.parseMemberPaymentURI(ctx)
-	if !ok {
+	if !c.ensureAdminOrSelf(ctx, memberID) {
 		return
 	}
 
@@ -133,13 +165,12 @@ func (c *Controller) DeleteMemberPaymentController(ctx *gin.Context) {
 	span, _ := utils.LogSpanFromGin(ctx)
 	span.AddEvent(`members.ctl.payment.delete.start`)
 
-	if !auth.GetIsAdmin(ctx) {
-		base.Forbidden(ctx, i18n.Forbidden, nil)
+	memberID, rowID, ok := c.parseMemberPaymentURI(ctx)
+	if !ok {
 		return
 	}
 
-	memberID, rowID, ok := c.parseMemberPaymentURI(ctx)
-	if !ok {
+	if !c.ensureAdminOrSelf(ctx, memberID) {
 		return
 	}
 

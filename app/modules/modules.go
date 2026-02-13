@@ -94,6 +94,8 @@ func modulesInit() {
 		entitiesMod.Svc,
 		entitiesMod.Svc,
 		entitiesMod.Svc,
+		entitiesMod.Svc,
+		entitiesMod.Svc,
 	)
 	ordersMod := orders.New(db.Svc, entitiesMod.Svc, entitiesMod.Svc)
 	cartsMod := carts.New(db.Svc, entitiesMod.Svc, entitiesMod.Svc)

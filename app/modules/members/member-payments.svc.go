@@ -3,10 +3,12 @@ package members
 import (
 	"context"
 	"errors"
+	entitiesdto "phakram/app/modules/entities/dto"
 	"time"
 
 	"phakram/app/modules/entities/ent"
 	"phakram/app/utils"
+	"phakram/app/utils/base"
 
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
@@ -21,6 +23,27 @@ type CreateMemberPaymentServiceRequest struct {
 }
 
 type UpdateMemberPaymentServiceRequest = CreateMemberPaymentServiceRequest
+
+type ListMemberPaymentsServiceRequest struct {
+	base.RequestPaginate
+	MemberID uuid.UUID
+}
+
+func (s *Service) ListMemberPaymentsService(ctx context.Context, req *ListMemberPaymentsServiceRequest) ([]*ent.MemberPaymentEntity, *base.ResponsePaginate, error) {
+	span, _ := utils.LogSpanFromContext(ctx)
+	span.AddEvent(`members.svc.payment.list.start`)
+
+	data, page, err := s.payment.ListMemberPayments(ctx, &entitiesdto.ListMemberPaymentsRequest{
+		RequestPaginate: req.RequestPaginate,
+		MemberID:        req.MemberID,
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	span.AddEvent(`members.svc.payment.list.success`)
+	return data, page, nil
+}
 
 func (s *Service) CreateMemberPaymentService(ctx context.Context, memberID uuid.UUID, req *CreateMemberPaymentServiceRequest) error {
 	span, _ := utils.LogSpanFromContext(ctx)

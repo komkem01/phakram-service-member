@@ -24,11 +24,6 @@ func (c *Controller) UpdateEmailController(ctx *gin.Context) {
 	span, _ := utils.LogSpanFromGin(ctx)
 	span.AddEvent(`members.ctl.update_email.start`)
 
-	if !auth.GetIsAdmin(ctx) {
-		base.Forbidden(ctx, i18n.Forbidden, nil)
-		return
-	}
-
 	var uri UpdateEmailControllerRequestURI
 	if err := ctx.ShouldBindUri(&uri); err != nil {
 		base.BadRequest(ctx, i18n.BadRequest, nil)
@@ -38,6 +33,10 @@ func (c *Controller) UpdateEmailController(ctx *gin.Context) {
 	id, err := uuid.Parse(uri.ID)
 	if err != nil {
 		base.BadRequest(ctx, i18n.BadRequest, nil)
+		return
+	}
+
+	if !c.ensureAdminOrSelf(ctx, id) {
 		return
 	}
 

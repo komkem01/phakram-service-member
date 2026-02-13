@@ -2,14 +2,40 @@ package entities
 
 import (
 	"context"
+	entitiesdto "phakram/app/modules/entities/dto"
 	"phakram/app/modules/entities/ent"
 	entitiesinf "phakram/app/modules/entities/inf"
+	"phakram/app/utils/base"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/uptrace/bun"
 )
 
 var _ entitiesinf.MemberAddressEntity = (*Service)(nil)
+
+func (s *Service) ListMemberAddresses(ctx context.Context, req *entitiesdto.ListMemberAddressesRequest) ([]*ent.MemberAddressEntity, *base.ResponsePaginate, error) {
+	data := make([]*ent.MemberAddressEntity, 0)
+
+	_, page, err := base.NewInstant(s.db).GetList(
+		ctx,
+		&data,
+		&req.RequestPaginate,
+		[]string{"member_id", "phone", "first_name", "last_name"},
+		[]string{"created_at", "member_id", "phone", "first_name", "last_name"},
+		func(selQ *bun.SelectQuery) *bun.SelectQuery {
+			if req.MemberID != uuid.Nil {
+				selQ.Where("member_id = ?", req.MemberID)
+			}
+			return selQ
+		},
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return data, page, nil
+}
 
 func (s *Service) CreateMemberAddress(ctx context.Context, memberAddress *ent.MemberAddressEntity) error {
 	data := ent.MemberAddressEntity{

@@ -52,7 +52,7 @@ func (s *Service) DeleteService(ctx context.Context, id uuid.UUID, actionBy *uui
 			ActionID:     id,
 			ActionBy:     actionBy,
 			Status:       ent.StatusAuditSuccesses,
-			ActionDetail: "Deleted member with ID " + id.String(),
+			ActionDetail: s.buildAuditActionDetail(ctx, id, actionBy, "Deleted member", nil, nil, nil),
 			CreatedAt:    now,
 			UpdatedAt:    now,
 		}
@@ -71,7 +71,7 @@ func (s *Service) DeleteService(ctx context.Context, id uuid.UUID, actionBy *uui
 			ActionID:     id,
 			ActionBy:     actionBy,
 			Status:       ent.StatusAuditFailed,
-			ActionDetail: fmt.Sprintf("Delete member failed: %v", err),
+			ActionDetail: s.buildAuditActionDetail(ctx, id, actionBy, "Delete member", nil, nil, err),
 			CreatedAt:    now,
 			UpdatedAt:    now,
 		}

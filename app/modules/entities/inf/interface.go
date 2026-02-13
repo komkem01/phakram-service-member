@@ -127,6 +127,7 @@ type MemberTransactionEntity interface {
 }
 
 type MemberBankEntity interface {
+	ListMemberBanks(ctx context.Context, req *entitiesdto.ListMemberBanksRequest) ([]*ent.MemberBankEntity, *base.ResponsePaginate, error)
 	CreateMemberBank(ctx context.Context, memberBank *ent.MemberBankEntity) error
 	GetMemberBankByID(ctx context.Context, id uuid.UUID) (*ent.MemberBankEntity, error)
 	UpdateMemberBank(ctx context.Context, memberBank *ent.MemberBankEntity) error
@@ -134,6 +135,7 @@ type MemberBankEntity interface {
 }
 
 type MemberAddressEntity interface {
+	ListMemberAddresses(ctx context.Context, req *entitiesdto.ListMemberAddressesRequest) ([]*ent.MemberAddressEntity, *base.ResponsePaginate, error)
 	CreateMemberAddress(ctx context.Context, memberAddress *ent.MemberAddressEntity) error
 	GetMemberAddressByID(ctx context.Context, id uuid.UUID) (*ent.MemberAddressEntity, error)
 	UpdateMemberAddress(ctx context.Context, memberAddress *ent.MemberAddressEntity) error
@@ -172,6 +174,7 @@ type PaymentEntity interface {
 }
 
 type MemberPaymentEntity interface {
+	ListMemberPayments(ctx context.Context, req *entitiesdto.ListMemberPaymentsRequest) ([]*ent.MemberPaymentEntity, *base.ResponsePaginate, error)
 	CreateMemberPayment(ctx context.Context, memberPayment *ent.MemberPaymentEntity) error
 	GetMemberPaymentByID(ctx context.Context, id uuid.UUID) (*ent.MemberPaymentEntity, error)
 	UpdateMemberPayment(ctx context.Context, memberPayment *ent.MemberPaymentEntity) error

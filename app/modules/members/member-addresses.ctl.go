@@ -31,17 +31,52 @@ type CreateMemberAddressControllerRequest struct {
 
 type UpdateMemberAddressControllerRequest = CreateMemberAddressControllerRequest
 
+type ListMemberAddressesControllerRequest struct {
+	base.RequestPaginate
+}
+
+func (c *Controller) ListMemberAddressesController(ctx *gin.Context) {
+	span, _ := utils.LogSpanFromGin(ctx)
+	span.AddEvent(`members.ctl.address.list.start`)
+
+	memberID, ok := c.parseMemberID(ctx)
+	if !ok {
+		return
+	}
+
+	if !c.ensureAdminOrSelf(ctx, memberID) {
+		return
+	}
+
+	var req ListMemberAddressesControllerRequest
+	if err := ctx.ShouldBind(&req); err != nil {
+		base.BadRequest(ctx, i18n.BadRequest, nil)
+		return
+	}
+
+	data, page, err := c.svc.ListMemberAddressesService(ctx.Request.Context(), &ListMemberAddressesServiceRequest{
+		RequestPaginate: req.RequestPaginate,
+		MemberID:        memberID,
+	})
+	if err != nil {
+		base.HandleError(ctx, err)
+		return
+	}
+
+	span.AddEvent(`members.ctl.address.list.success`)
+	base.Paginate(ctx, data, page)
+}
+
 func (c *Controller) CreateMemberAddressController(ctx *gin.Context) {
 	span, _ := utils.LogSpanFromGin(ctx)
 	span.AddEvent(`members.ctl.address.create.start`)
 
-	if !auth.GetIsAdmin(ctx) {
-		base.Forbidden(ctx, i18n.Forbidden, nil)
+	memberID, ok := c.parseMemberID(ctx)
+	if !ok {
 		return
 	}
 
-	memberID, ok := c.parseMemberID(ctx)
-	if !ok {
+	if !c.ensureAdminOrSelf(ctx, memberID) {
 		return
 	}
 
@@ -99,13 +134,12 @@ func (c *Controller) InfoMemberAddressController(ctx *gin.Context) {
 	span, _ := utils.LogSpanFromGin(ctx)
 	span.AddEvent(`members.ctl.address.info.start`)
 
-	if !auth.GetIsAdmin(ctx) {
-		base.Forbidden(ctx, i18n.Forbidden, nil)
+	memberID, addressID, ok := c.parseMemberAddressURI(ctx)
+	if !ok {
 		return
 	}
 
-	memberID, addressID, ok := c.parseMemberAddressURI(ctx)
-	if !ok {
+	if !c.ensureAdminOrSelf(ctx, memberID) {
 		return
 	}
 
@@ -123,13 +157,12 @@ func (c *Controller) UpdateMemberAddressController(ctx *gin.Context) {
 	span, _ := utils.LogSpanFromGin(ctx)
 	span.AddEvent(`members.ctl.address.update.start`)
 
-	if !auth.GetIsAdmin(ctx) {
-		base.Forbidden(ctx, i18n.Forbidden, nil)
+	memberID, addressID, ok := c.parseMemberAddressURI(ctx)
+	if !ok {
 		return
 	}
 
-	memberID, addressID, ok := c.parseMemberAddressURI(ctx)
-	if !ok {
+	if !c.ensureAdminOrSelf(ctx, memberID) {
 		return
 	}
 
@@ -187,13 +220,12 @@ func (c *Controller) DeleteMemberAddressController(ctx *gin.Context) {
 	span, _ := utils.LogSpanFromGin(ctx)
 	span.AddEvent(`members.ctl.address.delete.start`)
 
-	if !auth.GetIsAdmin(ctx) {
-		base.Forbidden(ctx, i18n.Forbidden, nil)
+	memberID, addressID, ok := c.parseMemberAddressURI(ctx)
+	if !ok {
 		return
 	}
 
-	memberID, addressID, ok := c.parseMemberAddressURI(ctx)
-	if !ok {
+	if !c.ensureAdminOrSelf(ctx, memberID) {
 		return
 	}
 

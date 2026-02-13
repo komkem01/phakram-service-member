@@ -1,7 +1,6 @@
 package members
 
 import (
-	"phakram/app/modules/auth"
 	entitiesdto "phakram/app/modules/entities/dto"
 	"phakram/app/utils"
 	"phakram/app/utils/base"
@@ -28,13 +27,12 @@ func (c *Controller) ListMemberFilesController(ctx *gin.Context) {
 	span, _ := utils.LogSpanFromGin(ctx)
 	span.AddEvent(`members.ctl.file.list.start`)
 
-	if !auth.GetIsAdmin(ctx) {
-		base.Forbidden(ctx, i18n.Forbidden, nil)
+	memberID, ok := c.parseMemberID(ctx)
+	if !ok {
 		return
 	}
 
-	memberID, ok := c.parseMemberID(ctx)
-	if !ok {
+	if !c.ensureAdminOrSelf(ctx, memberID) {
 		return
 	}
 
@@ -61,13 +59,12 @@ func (c *Controller) CreateMemberFileController(ctx *gin.Context) {
 	span, _ := utils.LogSpanFromGin(ctx)
 	span.AddEvent(`members.ctl.file.create.start`)
 
-	if !auth.GetIsAdmin(ctx) {
-		base.Forbidden(ctx, i18n.Forbidden, nil)
+	memberID, ok := c.parseMemberID(ctx)
+	if !ok {
 		return
 	}
 
-	memberID, ok := c.parseMemberID(ctx)
-	if !ok {
+	if !c.ensureAdminOrSelf(ctx, memberID) {
 		return
 	}
 
@@ -97,13 +94,12 @@ func (c *Controller) InfoMemberFileController(ctx *gin.Context) {
 	span, _ := utils.LogSpanFromGin(ctx)
 	span.AddEvent(`members.ctl.file.info.start`)
 
-	if !auth.GetIsAdmin(ctx) {
-		base.Forbidden(ctx, i18n.Forbidden, nil)
+	memberID, rowID, ok := c.parseMemberFileURI(ctx)
+	if !ok {
 		return
 	}
 
-	memberID, rowID, ok := c.parseMemberFileURI(ctx)
-	if !ok {
+	if !c.ensureAdminOrSelf(ctx, memberID) {
 		return
 	}
 
@@ -121,13 +117,12 @@ func (c *Controller) UpdateMemberFileController(ctx *gin.Context) {
 	span, _ := utils.LogSpanFromGin(ctx)
 	span.AddEvent(`members.ctl.file.update.start`)
 
-	if !auth.GetIsAdmin(ctx) {
-		base.Forbidden(ctx, i18n.Forbidden, nil)
+	memberID, rowID, ok := c.parseMemberFileURI(ctx)
+	if !ok {
 		return
 	}
 
-	memberID, rowID, ok := c.parseMemberFileURI(ctx)
-	if !ok {
+	if !c.ensureAdminOrSelf(ctx, memberID) {
 		return
 	}
 
@@ -157,13 +152,12 @@ func (c *Controller) DeleteMemberFileController(ctx *gin.Context) {
 	span, _ := utils.LogSpanFromGin(ctx)
 	span.AddEvent(`members.ctl.file.delete.start`)
 
-	if !auth.GetIsAdmin(ctx) {
-		base.Forbidden(ctx, i18n.Forbidden, nil)
+	memberID, rowID, ok := c.parseMemberFileURI(ctx)
+	if !ok {
 		return
 	}
 
-	memberID, rowID, ok := c.parseMemberFileURI(ctx)
-	if !ok {
+	if !c.ensureAdminOrSelf(ctx, memberID) {
 		return
 	}
 

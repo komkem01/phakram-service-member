@@ -1,7 +1,6 @@
 package members
 
 import (
-	"phakram/app/modules/auth"
 	"phakram/app/utils"
 	"phakram/app/utils/base"
 	"phakram/config/i18n"
@@ -18,11 +17,6 @@ func (c *Controller) InfoController(ctx *gin.Context) {
 	span, _ := utils.LogSpanFromGin(ctx)
 	span.AddEvent(`members.ctl.info.start`)
 
-	if !auth.GetIsAdmin(ctx) {
-		base.Forbidden(ctx, i18n.Forbidden, nil)
-		return
-	}
-
 	var req InfoControllerRequestURI
 	if err := ctx.ShouldBindUri(&req); err != nil {
 		base.BadRequest(ctx, i18n.BadRequest, nil)
@@ -32,6 +26,10 @@ func (c *Controller) InfoController(ctx *gin.Context) {
 	id, err := uuid.Parse(req.ID)
 	if err != nil {
 		base.BadRequest(ctx, i18n.BadRequest, nil)
+		return
+	}
+
+	if !c.ensureAdminOrSelf(ctx, id) {
 		return
 	}
 

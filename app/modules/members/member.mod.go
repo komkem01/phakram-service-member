@@ -24,6 +24,8 @@ type (
 		file      entitiesinf.MemberFileEntity
 		payment   entitiesinf.MemberPaymentEntity
 		wishlist  entitiesinf.MemberWishlistEntity
+		order     entitiesinf.OrderEntity
+		cart      entitiesinf.CartEntity
 		audit     entitiesinf.AuditLogEntity
 	}
 	Controller struct {
@@ -42,6 +44,8 @@ type Options struct {
 	file      entitiesinf.MemberFileEntity
 	payment   entitiesinf.MemberPaymentEntity
 	wishlist  entitiesinf.MemberWishlistEntity
+	order     entitiesinf.OrderEntity
+	cart      entitiesinf.CartEntity
 	audit     entitiesinf.AuditLogEntity
 }
 
@@ -54,6 +58,8 @@ func New(
 	file entitiesinf.MemberFileEntity,
 	payment entitiesinf.MemberPaymentEntity,
 	wishlist entitiesinf.MemberWishlistEntity,
+	order entitiesinf.OrderEntity,
+	cart entitiesinf.CartEntity,
 	audit entitiesinf.AuditLogEntity,
 ) *Module {
 	tracer := otel.Tracer("members_module")
@@ -67,6 +73,8 @@ func New(
 		file:      file,
 		payment:   payment,
 		wishlist:  wishlist,
+		order:     order,
+		cart:      cart,
 		audit:     audit,
 	})
 	return &Module{
@@ -86,6 +94,8 @@ func newService(opt *Options) *Service {
 		file:      opt.file,
 		payment:   opt.payment,
 		wishlist:  opt.wishlist,
+		order:     opt.order,
+		cart:      opt.cart,
 		audit:     opt.audit,
 	}
 }

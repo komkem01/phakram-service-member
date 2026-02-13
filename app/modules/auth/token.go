@@ -15,13 +15,16 @@ import (
 var ErrInvalidToken = errors.New("invalid token")
 
 type tokenClaims struct {
-	Sub     string `json:"sub"`
-	Email   string `json:"email"`
-	Role    string `json:"role"`
-	IsAdmin bool   `json:"is_admin"`
-	Typ     string `json:"typ"`
-	Iat     int64  `json:"iat"`
-	Exp     int64  `json:"exp"`
+	Sub          string `json:"sub"`
+	Email        string `json:"email"`
+	Role         string `json:"role"`
+	IsAdmin      bool   `json:"is_admin"`
+	ActorSub     string `json:"actor_sub,omitempty"`
+	ActorIsAdmin bool   `json:"actor_is_admin,omitempty"`
+	ActingAs     bool   `json:"acting_as,omitempty"`
+	Typ          string `json:"typ"`
+	Iat          int64  `json:"iat"`
+	Exp          int64  `json:"exp"`
 }
 
 type tokenHeader struct {
@@ -32,7 +35,7 @@ type tokenHeader struct {
 const accessTokenTTL = 24 * time.Hour
 const refreshTokenTTL = 7 * 24 * time.Hour
 
-func (s *Service) generateToken(memberID uuid.UUID, email string, role string, isAdmin bool, tokenType string, ttl time.Duration) (string, int64, error) {
+func (s *Service) generateToken(memberID uuid.UUID, email string, role string, isAdmin bool, actorSub string, actorIsAdmin bool, actingAs bool, tokenType string, ttl time.Duration) (string, int64, error) {
 	if s.secret == "" {
 		return "", 0, errors.New("missing token secret")
 	}
@@ -42,13 +45,16 @@ func (s *Service) generateToken(memberID uuid.UUID, email string, role string, i
 
 	header := tokenHeader{Alg: "HS256", Typ: "JWT"}
 	claims := tokenClaims{
-		Sub:     memberID.String(),
-		Email:   email,
-		Role:    role,
-		IsAdmin: isAdmin,
-		Typ:     tokenType,
-		Iat:     now.Unix(),
-		Exp:     exp,
+		Sub:          memberID.String(),
+		Email:        email,
+		Role:         role,
+		IsAdmin:      isAdmin,
+		ActorSub:     actorSub,
+		ActorIsAdmin: actorIsAdmin,
+		ActingAs:     actingAs,
+		Typ:          tokenType,
+		Iat:          now.Unix(),
+		Exp:          exp,
 	}
 
 	headerJSON, err := json.Marshal(header)

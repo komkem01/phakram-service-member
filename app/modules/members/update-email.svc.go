@@ -63,7 +63,7 @@ func (s *Service) UpdateEmailService(ctx context.Context, id uuid.UUID, req *Upd
 			ActionID:     id,
 			ActionBy:     req.ActionBy,
 			Status:       ent.StatusAuditSuccesses,
-			ActionDetail: "Updated member email with ID " + id.String(),
+			ActionDetail: s.buildAuditActionDetail(ctx, id, req.ActionBy, "Updated member email", nil, nil, nil),
 			CreatedAt:    now,
 			UpdatedAt:    now,
 		}
@@ -82,7 +82,7 @@ func (s *Service) UpdateEmailService(ctx context.Context, id uuid.UUID, req *Upd
 			ActionID:     id,
 			ActionBy:     req.ActionBy,
 			Status:       ent.StatusAuditFailed,
-			ActionDetail: fmt.Sprintf("Update member email failed: %v", err),
+			ActionDetail: s.buildAuditActionDetail(ctx, id, req.ActionBy, "Update member email", nil, nil, err),
 			CreatedAt:    now,
 			UpdatedAt:    now,
 		}

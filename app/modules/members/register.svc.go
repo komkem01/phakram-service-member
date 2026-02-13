@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"time"
 
 	"phakram/app/modules/entities/ent"
@@ -56,7 +55,7 @@ func (s *Service) createRegisterService(ctx context.Context, req *RegisterServic
 			ActionID:     memberID,
 			ActionBy:     req.ActionBy,
 			Status:       ent.StatusAuditFailed,
-			ActionDetail: fmt.Sprintf("Register failed: %v", err),
+			ActionDetail: s.buildAuditActionDetail(ctx, memberID, req.ActionBy, "Register member", nil, nil, err),
 			CreatedAt:    time.Now(),
 			UpdatedAt:    time.Now(),
 		}
@@ -85,7 +84,7 @@ func (s *Service) createRegisterService(ctx context.Context, req *RegisterServic
 			ActionID:     memberID,
 			ActionBy:     req.ActionBy,
 			Status:       ent.StatusAuditFailed,
-			ActionDetail: fmt.Sprintf("Register failed: %v", err),
+			ActionDetail: s.buildAuditActionDetail(ctx, memberID, req.ActionBy, "Register member", nil, nil, err),
 			CreatedAt:    time.Now(),
 			UpdatedAt:    time.Now(),
 		}
@@ -141,7 +140,7 @@ func (s *Service) createRegisterService(ctx context.Context, req *RegisterServic
 			ActionID:     memberID,
 			ActionBy:     req.ActionBy,
 			Status:       ent.StatusAuditSuccesses,
-			ActionDetail: "Registered member with ID " + memberID.String(),
+			ActionDetail: s.buildAuditActionDetail(ctx, memberID, req.ActionBy, "Registered member", nil, nil, nil),
 			CreatedAt:    now,
 			UpdatedAt:    now,
 		}
@@ -171,7 +170,7 @@ func (s *Service) createRegisterService(ctx context.Context, req *RegisterServic
 			ActionID:     memberID,
 			ActionBy:     req.ActionBy,
 			Status:       ent.StatusAuditFailed,
-			ActionDetail: fmt.Sprintf("Register failed: %v", err),
+			ActionDetail: s.buildAuditActionDetail(ctx, memberID, req.ActionBy, "Register member", nil, nil, err),
 			CreatedAt:    time.Now(),
 			UpdatedAt:    time.Now(),
 		}

@@ -33,7 +33,7 @@ func (s *Service) UpdatePasswordService(ctx context.Context, id uuid.UUID, req *
 			ActionID:     id,
 			ActionBy:     req.ActionBy,
 			Status:       ent.StatusAuditFailed,
-			ActionDetail: fmt.Sprintf("Update member password failed: %v", err),
+			ActionDetail: s.buildAuditActionDetail(ctx, id, req.ActionBy, "Update member password", nil, nil, err),
 			CreatedAt:    now,
 			UpdatedAt:    now,
 		}
@@ -79,7 +79,7 @@ func (s *Service) UpdatePasswordService(ctx context.Context, id uuid.UUID, req *
 			ActionID:     id,
 			ActionBy:     req.ActionBy,
 			Status:       ent.StatusAuditSuccesses,
-			ActionDetail: "Updated member password with ID " + id.String(),
+			ActionDetail: s.buildAuditActionDetail(ctx, id, req.ActionBy, "Updated member password", nil, nil, nil),
 			CreatedAt:    now,
 			UpdatedAt:    now,
 		}
@@ -98,7 +98,7 @@ func (s *Service) UpdatePasswordService(ctx context.Context, id uuid.UUID, req *
 			ActionID:     id,
 			ActionBy:     req.ActionBy,
 			Status:       ent.StatusAuditFailed,
-			ActionDetail: fmt.Sprintf("Update member password failed: %v", err),
+			ActionDetail: s.buildAuditActionDetail(ctx, id, req.ActionBy, "Update member password", nil, nil, err),
 			CreatedAt:    now,
 			UpdatedAt:    now,
 		}

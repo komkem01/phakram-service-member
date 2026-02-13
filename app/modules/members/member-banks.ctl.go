@@ -1,7 +1,6 @@
 package members
 
 import (
-	"phakram/app/modules/auth"
 	"phakram/app/utils"
 	"phakram/app/utils/base"
 	"phakram/config/i18n"
@@ -27,17 +26,52 @@ type CreateMemberBankControllerRequest struct {
 
 type UpdateMemberBankControllerRequest = CreateMemberBankControllerRequest
 
+type ListMemberBanksControllerRequest struct {
+	base.RequestPaginate
+}
+
+func (c *Controller) ListMemberBanksController(ctx *gin.Context) {
+	span, _ := utils.LogSpanFromGin(ctx)
+	span.AddEvent(`members.ctl.bank.list.start`)
+
+	memberID, ok := c.parseMemberID(ctx)
+	if !ok {
+		return
+	}
+
+	if !c.ensureAdminOrSelf(ctx, memberID) {
+		return
+	}
+
+	var req ListMemberBanksControllerRequest
+	if err := ctx.ShouldBind(&req); err != nil {
+		base.BadRequest(ctx, i18n.BadRequest, nil)
+		return
+	}
+
+	data, page, err := c.svc.ListMemberBanksService(ctx.Request.Context(), &ListMemberBanksServiceRequest{
+		RequestPaginate: req.RequestPaginate,
+		MemberID:        memberID,
+	})
+	if err != nil {
+		base.HandleError(ctx, err)
+		return
+	}
+
+	span.AddEvent(`members.ctl.bank.list.success`)
+	base.Paginate(ctx, data, page)
+}
+
 func (c *Controller) CreateMemberBankController(ctx *gin.Context) {
 	span, _ := utils.LogSpanFromGin(ctx)
 	span.AddEvent(`members.ctl.bank.create.start`)
 
-	if !auth.GetIsAdmin(ctx) {
-		base.Forbidden(ctx, i18n.Forbidden, nil)
+	memberID, ok := c.parseMemberID(ctx)
+	if !ok {
 		return
 	}
 
-	memberID, ok := c.parseMemberID(ctx)
-	if !ok {
+	if !c.ensureAdminOrSelf(ctx, memberID) {
 		return
 	}
 
@@ -76,13 +110,12 @@ func (c *Controller) InfoMemberBankController(ctx *gin.Context) {
 	span, _ := utils.LogSpanFromGin(ctx)
 	span.AddEvent(`members.ctl.bank.info.start`)
 
-	if !auth.GetIsAdmin(ctx) {
-		base.Forbidden(ctx, i18n.Forbidden, nil)
+	memberID, bankID, ok := c.parseMemberBankURI(ctx)
+	if !ok {
 		return
 	}
 
-	memberID, bankID, ok := c.parseMemberBankURI(ctx)
-	if !ok {
+	if !c.ensureAdminOrSelf(ctx, memberID) {
 		return
 	}
 
@@ -100,13 +133,12 @@ func (c *Controller) UpdateMemberBankController(ctx *gin.Context) {
 	span, _ := utils.LogSpanFromGin(ctx)
 	span.AddEvent(`members.ctl.bank.update.start`)
 
-	if !auth.GetIsAdmin(ctx) {
-		base.Forbidden(ctx, i18n.Forbidden, nil)
+	memberID, bankRowID, ok := c.parseMemberBankURI(ctx)
+	if !ok {
 		return
 	}
 
-	memberID, bankRowID, ok := c.parseMemberBankURI(ctx)
-	if !ok {
+	if !c.ensureAdminOrSelf(ctx, memberID) {
 		return
 	}
 
@@ -145,13 +177,12 @@ func (c *Controller) DeleteMemberBankController(ctx *gin.Context) {
 	span, _ := utils.LogSpanFromGin(ctx)
 	span.AddEvent(`members.ctl.bank.delete.start`)
 
-	if !auth.GetIsAdmin(ctx) {
-		base.Forbidden(ctx, i18n.Forbidden, nil)
+	memberID, bankID, ok := c.parseMemberBankURI(ctx)
+	if !ok {
 		return
 	}
 
-	memberID, bankID, ok := c.parseMemberBankURI(ctx)
-	if !ok {
+	if !c.ensureAdminOrSelf(ctx, memberID) {
 		return
 	}
 

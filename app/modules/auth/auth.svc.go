@@ -32,6 +32,11 @@ type RefreshTokenServiceRequest struct {
 	RefreshToken string
 }
 
+type ActAsMemberServiceRequest struct {
+	ActorMemberID uuid.UUID
+	TargetMemberID uuid.UUID
+}
+
 type MemberInfoServiceResponse struct {
 	MemberID     uuid.UUID `json:"member_id"`
 	MemberNo     string    `json:"member_no"`
@@ -43,6 +48,9 @@ type MemberInfoServiceResponse struct {
 	FirstnameEn  string    `json:"firstname_en"`
 	LastnameEn   string    `json:"lastname_en"`
 	Phone        string    `json:"phone"`
+	ActorMemberID *uuid.UUID `json:"actor_member_id,omitempty"`
+	ActorIsAdmin  bool       `json:"actor_is_admin"`
+	IsActingAs    bool       `json:"is_acting_as"`
 	LastLogin    *int64    `json:"last_login"`
 	Registration *int64    `json:"registration"`
 }
@@ -154,6 +162,13 @@ func (s *Service) GetInfoService(ctx context.Context, memberID uuid.UUID) (*Memb
 		FirstnameEn: data.FirstnameEn,
 		LastnameEn:  data.LastnameEn,
 		Phone:       data.Phone,
+		ActorIsAdmin: RequestIsActingAs(ctx) || (data.Role == ent.RoleTypeAdmin),
+		IsActingAs:  RequestIsActingAs(ctx),
+	}
+
+	if actorID, ok := RequestActorMemberID(ctx); ok && actorID != memberID {
+		resp.ActorMemberID = &actorID
+		resp.ActorIsAdmin = true
 	}
 
 	if data.LastLogin != nil {
@@ -168,15 +183,63 @@ func (s *Service) GetInfoService(ctx context.Context, memberID uuid.UUID) (*Memb
 	return resp, nil
 }
 
+func (s *Service) ActAsMemberService(ctx context.Context, req *ActAsMemberServiceRequest) (*TokenServiceResponse, error) {
+	_, span, _ := utils.NewLogSpan(ctx, s.tracer, "ActAsMemberService")
+	defer span.End()
+
+	actorData, err := s.findMemberAuthByID(ctx, req.ActorMemberID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, errors.New("forbidden")
+		}
+		return nil, err
+	}
+	if actorData.Role != ent.RoleTypeAdmin {
+		return nil, errors.New("forbidden")
+	}
+
+	targetData, err := s.findMemberAuthByID(ctx, req.TargetMemberID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, errors.New("forbidden")
+		}
+		return nil, err
+	}
+
+	return s.buildTokenResponseWithActor(targetData.MemberID, targetData.Email, targetData.Role, actorData.MemberID.String(), true, true)
+}
+
+func (s *Service) ExitActAsService(ctx context.Context, actorMemberID uuid.UUID) (*TokenServiceResponse, error) {
+	_, span, _ := utils.NewLogSpan(ctx, s.tracer, "ExitActAsService")
+	defer span.End()
+
+	actorData, err := s.findMemberAuthByID(ctx, actorMemberID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, errors.New("forbidden")
+		}
+		return nil, err
+	}
+	if actorData.Role != ent.RoleTypeAdmin {
+		return nil, errors.New("forbidden")
+	}
+
+	return s.buildTokenResponse(actorData.MemberID, actorData.Email, actorData.Role)
+}
+
 func (s *Service) buildTokenResponse(memberID uuid.UUID, email string, role ent.RoleTypeEnum) (*TokenServiceResponse, error) {
+	return s.buildTokenResponseWithActor(memberID, email, role, "", false, false)
+}
+
+func (s *Service) buildTokenResponseWithActor(memberID uuid.UUID, email string, role ent.RoleTypeEnum, actorSub string, actorIsAdmin bool, actingAs bool) (*TokenServiceResponse, error) {
 	isAdmin := role == ent.RoleTypeAdmin
 
-	accessToken, accessExp, err := s.generateToken(memberID, email, string(role), isAdmin, "access", accessTokenTTL)
+	accessToken, accessExp, err := s.generateToken(memberID, email, string(role), isAdmin, actorSub, actorIsAdmin, actingAs, "access", accessTokenTTL)
 	if err != nil {
 		return nil, err
 	}
 
-	refreshToken, refreshExp, err := s.generateToken(memberID, email, string(role), isAdmin, "refresh", refreshTokenTTL)
+	refreshToken, refreshExp, err := s.generateToken(memberID, email, string(role), isAdmin, actorSub, actorIsAdmin, actingAs, "refresh", refreshTokenTTL)
 	if err != nil {
 		return nil, err
 	}

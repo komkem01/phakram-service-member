@@ -8,6 +8,7 @@ import (
 	"phakram/config/i18n"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 func (c *Controller) AuthMiddleware() gin.HandlerFunc {
@@ -40,6 +41,29 @@ func (c *Controller) AuthMiddleware() gin.HandlerFunc {
 		ctx.Set(ContextMemberIDKey, claims.Sub)
 		ctx.Set(ContextRoleKey, claims.Role)
 		ctx.Set(ContextIsAdminKey, claims.IsAdmin)
+
+		actorSub := claims.Sub
+		actorIsAdmin := claims.IsAdmin
+		if claims.ActorSub != "" {
+			actorSub = claims.ActorSub
+			actorIsAdmin = claims.ActorIsAdmin
+		}
+
+		ctx.Set(ContextActorMemberIDKey, actorSub)
+		ctx.Set(ContextActorIsAdminKey, actorIsAdmin)
+		ctx.Set(ContextActingAsKey, claims.ActingAs)
+
+		targetID, targetErr := uuid.Parse(claims.Sub)
+		actorID, actorErr := uuid.Parse(actorSub)
+		if targetErr == nil && actorErr == nil {
+			ctx.Request = ctx.Request.WithContext(WithRequestMeta(
+				ctx.Request.Context(),
+				ctx.FullPath(),
+				actorID,
+				targetID,
+				claims.ActingAs,
+			))
+		}
 
 		span.AddEvent(`auth.middleware.success`)
 		ctx.Next()

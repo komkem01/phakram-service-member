@@ -132,11 +132,14 @@ func apiAuth(r *gin.RouterGroup, mod *modules.Modules) {
 	auth := r.Group("/auth", mod.Auth.Ctl.AuthMiddleware())
 	{
 		auth.GET("/me", mod.Auth.Ctl.GetInfoController)
+		auth.POST("/act-as", mod.Auth.Ctl.ActAsMemberController)
+		auth.POST("/act-as/exit", mod.Auth.Ctl.ExitActAsController)
 
 		members := auth.Group("/members")
 		{
 			members.GET("/", mod.Members.Ctl.ListController)
 			members.GET("/:id", mod.Members.Ctl.InfoController)
+			members.GET("/:id/overview", mod.Members.Ctl.MemberOverviewController)
 			members.POST("/register", mod.Members.Ctl.CreateRegisterByAdminController)
 			members.PATCH("/:id", mod.Members.Ctl.UpdateController)
 			members.PATCH("/:id/email", mod.Members.Ctl.UpdateEmailController)
@@ -146,6 +149,7 @@ func apiAuth(r *gin.RouterGroup, mod *modules.Modules) {
 
 		addresses := auth.Group("/members/:id/addresses")
 		{
+			addresses.GET("/", mod.Members.Ctl.ListMemberAddressesController)
 			addresses.GET("/:address_id", mod.Members.Ctl.InfoMemberAddressController)
 			addresses.POST("/", mod.Members.Ctl.CreateMemberAddressController)
 			addresses.PATCH("/:address_id", mod.Members.Ctl.UpdateMemberAddressController)
@@ -154,6 +158,7 @@ func apiAuth(r *gin.RouterGroup, mod *modules.Modules) {
 
 		banks := auth.Group("/members/:id/banks")
 		{
+			banks.GET("/", mod.Members.Ctl.ListMemberBanksController)
 			banks.GET("/:bank_id", mod.Members.Ctl.InfoMemberBankController)
 			banks.POST("/", mod.Members.Ctl.CreateMemberBankController)
 			banks.PATCH("/:bank_id", mod.Members.Ctl.UpdateMemberBankController)
@@ -171,6 +176,7 @@ func apiAuth(r *gin.RouterGroup, mod *modules.Modules) {
 
 		payments := auth.Group("/members/:id/payments")
 		{
+			payments.GET("/", mod.Members.Ctl.ListMemberPaymentsController)
 			payments.GET("/:member_payment_id", mod.Members.Ctl.InfoMemberPaymentController)
 			payments.POST("/", mod.Members.Ctl.CreateMemberPaymentController)
 			payments.PATCH("/:member_payment_id", mod.Members.Ctl.UpdateMemberPaymentController)

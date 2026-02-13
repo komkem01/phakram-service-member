@@ -30,6 +30,15 @@ var errorMappings = map[string]ResponseFunction{
 	"address not found": func(ctx *gin.Context, _ string, _ any, params ...map[string]string) error {
 		return ValidateFailed(ctx, "ไม่พบที่อยู่", nil, params...)
 	},
+	"member address not found": func(ctx *gin.Context, _ string, _ any, params ...map[string]string) error {
+		return ValidateFailed(ctx, "ไม่พบที่อยู่", nil, params...)
+	},
+	"member bank not found": func(ctx *gin.Context, _ string, _ any, params ...map[string]string) error {
+		return ValidateFailed(ctx, "ไม่พบบัญชีธนาคาร", nil, params...)
+	},
+	"member payment not found": func(ctx *gin.Context, _ string, _ any, params ...map[string]string) error {
+		return ValidateFailed(ctx, "ไม่พบข้อมูลการชำระเงิน", nil, params...)
+	},
 	"cart items not found": func(ctx *gin.Context, _ string, _ any, params ...map[string]string) error {
 		return ValidateFailed(ctx, "ไม่พบสินค้าในตะกร้า", nil, params...)
 	},

@@ -1,7 +1,6 @@
 package members
 
 import (
-	"phakram/app/modules/auth"
 	entitiesdto "phakram/app/modules/entities/dto"
 	"phakram/app/utils"
 	"phakram/app/utils/base"
@@ -33,13 +32,12 @@ func (c *Controller) ListMemberWishlistController(ctx *gin.Context) {
 	span, _ := utils.LogSpanFromGin(ctx)
 	span.AddEvent(`members.ctl.wishlist.list.start`)
 
-	if !auth.GetIsAdmin(ctx) {
-		base.Forbidden(ctx, i18n.Forbidden, nil)
+	memberID, ok := c.parseMemberID(ctx)
+	if !ok {
 		return
 	}
 
-	memberID, ok := c.parseMemberID(ctx)
-	if !ok {
+	if !c.ensureAdminOrSelf(ctx, memberID) {
 		return
 	}
 
@@ -66,13 +64,12 @@ func (c *Controller) CreateMemberWishlistController(ctx *gin.Context) {
 	span, _ := utils.LogSpanFromGin(ctx)
 	span.AddEvent(`members.ctl.wishlist.create.start`)
 
-	if !auth.GetIsAdmin(ctx) {
-		base.Forbidden(ctx, i18n.Forbidden, nil)
+	memberID, ok := c.parseMemberID(ctx)
+	if !ok {
 		return
 	}
 
-	memberID, ok := c.parseMemberID(ctx)
-	if !ok {
+	if !c.ensureAdminOrSelf(ctx, memberID) {
 		return
 	}
 
@@ -108,13 +105,12 @@ func (c *Controller) InfoMemberWishlistController(ctx *gin.Context) {
 	span, _ := utils.LogSpanFromGin(ctx)
 	span.AddEvent(`members.ctl.wishlist.info.start`)
 
-	if !auth.GetIsAdmin(ctx) {
-		base.Forbidden(ctx, i18n.Forbidden, nil)
+	memberID, wishlistID, ok := c.parseMemberWishlistURI(ctx)
+	if !ok {
 		return
 	}
 
-	memberID, wishlistID, ok := c.parseMemberWishlistURI(ctx)
-	if !ok {
+	if !c.ensureAdminOrSelf(ctx, memberID) {
 		return
 	}
 
@@ -132,13 +128,12 @@ func (c *Controller) UpdateMemberWishlistController(ctx *gin.Context) {
 	span, _ := utils.LogSpanFromGin(ctx)
 	span.AddEvent(`members.ctl.wishlist.update.start`)
 
-	if !auth.GetIsAdmin(ctx) {
-		base.Forbidden(ctx, i18n.Forbidden, nil)
+	memberID, wishlistID, ok := c.parseMemberWishlistURI(ctx)
+	if !ok {
 		return
 	}
 
-	memberID, wishlistID, ok := c.parseMemberWishlistURI(ctx)
-	if !ok {
+	if !c.ensureAdminOrSelf(ctx, memberID) {
 		return
 	}
 
@@ -174,13 +169,12 @@ func (c *Controller) DeleteMemberWishlistController(ctx *gin.Context) {
 	span, _ := utils.LogSpanFromGin(ctx)
 	span.AddEvent(`members.ctl.wishlist.delete.start`)
 
-	if !auth.GetIsAdmin(ctx) {
-		base.Forbidden(ctx, i18n.Forbidden, nil)
+	memberID, wishlistID, ok := c.parseMemberWishlistURI(ctx)
+	if !ok {
 		return
 	}
 
-	memberID, wishlistID, ok := c.parseMemberWishlistURI(ctx)
-	if !ok {
+	if !c.ensureAdminOrSelf(ctx, memberID) {
 		return
 	}
 
