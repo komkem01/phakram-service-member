@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { ModalProvider } from "@/contexts/ModalContext";
 
 export const metadata: Metadata = {
   title: "Phakram Web Manage",
@@ -9,7 +10,11 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="th">
-      <body>{children}</body>
+      <body className="antialiased">
+        <ModalProvider>
+          {children}
+        </ModalProvider>
+      </body>
     </html>
   );
 }

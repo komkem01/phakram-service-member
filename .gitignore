@@ -7,3 +7,5 @@ tmp/
 storage/
 .DS_Store
 todo_tree.example
+node_modules/
+*.log

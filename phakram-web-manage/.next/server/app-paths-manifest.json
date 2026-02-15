@@ -1,0 +1,12 @@
+{
+  "/_not-found/page": "app/_not-found/page.js",
+  "/admin/districts/page": "app/admin/districts/page.js",
+  "/admin/genders/page": "app/admin/genders/page.js",
+  "/admin/members/page": "app/admin/members/page.js",
+  "/admin/page": "app/admin/page.js",
+  "/admin/prefixes/page": "app/admin/prefixes/page.js",
+  "/admin/profile/page": "app/admin/profile/page.js",
+  "/admin/provinces/page": "app/admin/provinces/page.js",
+  "/login/page": "app/login/page.js",
+  "/page": "app/page.js"
+}
