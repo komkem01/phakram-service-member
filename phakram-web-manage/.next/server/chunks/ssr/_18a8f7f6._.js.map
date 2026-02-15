@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": [],
-  "sections": [
-    {"offset": {"line": 6, "column": 0}, "map": {"version":3,"sources":[],"names":[],"mappings":"","debugId":null}},
-    {"offset": {"line": 18, "column": 0}, "map": {"version":3,"sources":["file:///C:/Users/komke/OneDrive/%E0%B9%80%E0%B8%AD%E0%B8%81%E0%B8%AA%E0%B8%B2%E0%B8%A3/KOMKEM/Phakram/phakram-service-member/phakram-web-manage/app/page.tsx"],"sourcesContent":["import { redirect } from 'next/navigation';\r\n\r\nexport default function Home() {\r\n  redirect('/login');\r\n}\r\n"],"names":[],"mappings":";;;AAAA;AAAA;;AAEe,SAAS;IACtB,CAAA,GAAA,qLAAA,CAAA,WAAQ,AAAD,EAAE;AACX","debugId":null}}]
-}
