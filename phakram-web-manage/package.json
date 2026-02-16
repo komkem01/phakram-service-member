@@ -4,12 +4,15 @@
   "private": true,
   "scripts": {
     "dev": "next dev --port 3000",
-    "build": "next build --turbopack",
+    "build": "next build",
     "start": "next start --port 3000",
+    "clean": "node -e \"const fs=require('fs'); fs.rmSync('.next',{recursive:true,force:true});\"",
+    "dev:clean": "npm run clean && npm run dev",
     "lint": "next lint",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@headlessui/react": "^2.2.9",
     "next": "15.3.2",
     "react": "19.0.0",
     "react-dom": "19.0.0"

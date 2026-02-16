@@ -29,7 +29,7 @@ const menuItems: MenuItem[] = [
       { id: "provinces", label: "จังหวัด", href: "/admin/provinces" },
       { id: "districts", label: "อำเภอ", href: "/admin/districts" },
       { id: "sub-districts", label: "ตำบล", href: "/admin/sub-districts" },
-      { id: "zipcodes", label: "เลขปณ", href: "/admin/zipcodes" },
+      { id: "zipcodes", label: "รหัสไปรษณีย์", href: "/admin/zipcodes" },
       { id: "tiers", label: "ระดับสมาชิก", href: "/admin/tiers" },
       { id: "statuses", label: "สถานะ", href: "/admin/statuses" },
       { id: "banks", label: "ธนาคาร", href: "/admin/banks" },

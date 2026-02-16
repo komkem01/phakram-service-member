@@ -54,8 +54,8 @@ export default function LoginPage() {
 
         {/* Login Card */}
         <div className="bg-white rounded-2xl shadow-xl border border-slate-100 p-8">
-          <h2 className="text-xl font-semibold text-slate-900 mb-6">
-            เข้าสู่ระบบ
+          <h2 className="text-xl font-semibold text-slate-900 mb-6 text-center">
+            Login
           </h2>
 
           <form onSubmit={handleSubmit} className="space-y-5">
