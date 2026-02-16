@@ -41,6 +41,7 @@ func (s *Service) ListService(ctx context.Context, req *ListPrefixServiceRequest
 			NameTh:    item.NameTh,
 			NameEn:    item.NameEn,
 			GenderID:  item.GenderID,
+			IsActive:  item.IsActive,
 			CreatedAt: item.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		}
 		response = append(response, temp)

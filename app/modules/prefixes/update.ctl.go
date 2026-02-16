@@ -56,6 +56,7 @@ func (c *Controller) UpdateController(ctx *gin.Context) {
 		NameTh:   req.NameTh,
 		NameEn:   req.NameEn,
 		GenderID: genderID,
+		IsActive: req.IsActive,
 	}); err != nil {
 		base.HandleError(ctx, err)
 		return
