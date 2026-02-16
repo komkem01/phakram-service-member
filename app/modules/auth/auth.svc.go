@@ -33,26 +33,26 @@ type RefreshTokenServiceRequest struct {
 }
 
 type ActAsMemberServiceRequest struct {
-	ActorMemberID uuid.UUID
+	ActorMemberID  uuid.UUID
 	TargetMemberID uuid.UUID
 }
 
 type MemberInfoServiceResponse struct {
-	MemberID     uuid.UUID `json:"member_id"`
-	MemberNo     string    `json:"member_no"`
-	Email        string    `json:"email"`
-	Role         string    `json:"role"`
-	IsAdmin      bool      `json:"is_admin"`
-	FirstnameTh  string    `json:"firstname_th"`
-	LastnameTh   string    `json:"lastname_th"`
-	FirstnameEn  string    `json:"firstname_en"`
-	LastnameEn   string    `json:"lastname_en"`
-	Phone        string    `json:"phone"`
+	MemberID      uuid.UUID  `json:"member_id"`
+	MemberNo      string     `json:"member_no"`
+	Email         string     `json:"email"`
+	Role          string     `json:"role"`
+	IsAdmin       bool       `json:"is_admin"`
+	FirstnameTh   string     `json:"firstname_th"`
+	LastnameTh    string     `json:"lastname_th"`
+	FirstnameEn   string     `json:"firstname_en"`
+	LastnameEn    string     `json:"lastname_en"`
+	Phone         string     `json:"phone"`
 	ActorMemberID *uuid.UUID `json:"actor_member_id,omitempty"`
 	ActorIsAdmin  bool       `json:"actor_is_admin"`
 	IsActingAs    bool       `json:"is_acting_as"`
-	LastLogin    *int64    `json:"last_login"`
-	Registration *int64    `json:"registration"`
+	LastLogin     *int64     `json:"last_login"`
+	Registration  *int64     `json:"registration"`
 }
 
 type memberAuthData struct {
@@ -86,28 +86,7 @@ func (s *Service) LoginService(ctx context.Context, req *LoginServiceRequest) (*
 		return nil, errors.New("invalid credentials")
 	}
 
-	now := time.Now()
-	err = s.bunDB.DB().RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
-		if _, err := tx.NewUpdate().
-			Table("members").
-			Set("last_login = ?", now).
-			Set("updated_at = ?", now).
-			Where("id = ?", data.MemberID).
-			Exec(ctx); err != nil {
-			return err
-		}
-
-		memberTx := &ent.MemberTransactionEntity{
-			ID:        uuid.New(),
-			MemberID:  data.MemberID,
-			Action:    ent.MemberActionLogined,
-			Details:   fmt.Sprintf("member logined by email %s", data.Email),
-			CreatedAt: now,
-		}
-		_, err := tx.NewInsert().Model(memberTx).Exec(ctx)
-		return err
-	})
-	if err != nil {
+	if err := s.touchMemberLastLogin(ctx, data.MemberID, fmt.Sprintf("member logined by email %s", data.Email)); err != nil {
 		return nil, err
 	}
 
@@ -136,7 +115,39 @@ func (s *Service) RefreshTokenService(ctx context.Context, req *RefreshTokenServ
 		return nil, err
 	}
 
+	if err := s.touchMemberLastLogin(ctx, data.MemberID, "member refreshed token"); err != nil {
+		return nil, err
+	}
+
 	return s.buildTokenResponse(data.MemberID, data.Email, data.Role)
+}
+
+func (s *Service) touchMemberLastLogin(ctx context.Context, memberID uuid.UUID, detail string) error {
+	now := time.Now()
+
+	return s.bunDB.DB().RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
+		if _, err := tx.NewUpdate().
+			Table("members").
+			Set("last_login = ?", now).
+			Set("updated_at = ?", now).
+			Where("id = ?", memberID).
+			Exec(ctx); err != nil {
+			return err
+		}
+
+		memberTx := &ent.MemberTransactionEntity{
+			ID:        uuid.New(),
+			MemberID:  memberID,
+			Action:    ent.MemberActionLogined,
+			Details:   detail,
+			CreatedAt: now,
+		}
+		if _, err := tx.NewInsert().Model(memberTx).Exec(ctx); err != nil {
+			return err
+		}
+
+		return nil
+	})
 }
 
 func (s *Service) GetInfoService(ctx context.Context, memberID uuid.UUID) (*MemberInfoServiceResponse, error) {
@@ -152,18 +163,18 @@ func (s *Service) GetInfoService(ctx context.Context, memberID uuid.UUID) (*Memb
 	}
 
 	resp := &MemberInfoServiceResponse{
-		MemberID:    data.MemberID,
-		MemberNo:    data.MemberNo,
-		Email:       data.Email,
-		Role:        string(data.Role),
-		IsAdmin:     data.Role == ent.RoleTypeAdmin,
-		FirstnameTh: data.FirstnameTh,
-		LastnameTh:  data.LastnameTh,
-		FirstnameEn: data.FirstnameEn,
-		LastnameEn:  data.LastnameEn,
-		Phone:       data.Phone,
+		MemberID:     data.MemberID,
+		MemberNo:     data.MemberNo,
+		Email:        data.Email,
+		Role:         string(data.Role),
+		IsAdmin:      data.Role == ent.RoleTypeAdmin,
+		FirstnameTh:  data.FirstnameTh,
+		LastnameTh:   data.LastnameTh,
+		FirstnameEn:  data.FirstnameEn,
+		LastnameEn:   data.LastnameEn,
+		Phone:        data.Phone,
 		ActorIsAdmin: RequestIsActingAs(ctx) || (data.Role == ent.RoleTypeAdmin),
-		IsActingAs:  RequestIsActingAs(ctx),
+		IsActingAs:   RequestIsActingAs(ctx),
 	}
 
 	if actorID, ok := RequestActorMemberID(ctx); ok && actorID != memberID {

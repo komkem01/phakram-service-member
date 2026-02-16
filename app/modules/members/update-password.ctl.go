@@ -17,7 +17,9 @@ type UpdatePasswordControllerRequestURI struct {
 }
 
 type UpdatePasswordControllerRequest struct {
-	Password string `json:"password"`
+	CurrentPassword string `json:"current_password"`
+	NewPassword     string `json:"new_password"`
+	Password        string `json:"password"`
 }
 
 func (c *Controller) UpdatePasswordController(ctx *gin.Context) {
@@ -45,7 +47,13 @@ func (c *Controller) UpdatePasswordController(ctx *gin.Context) {
 		base.BadRequest(ctx, i18n.BadRequest, nil)
 		return
 	}
-	if strings.TrimSpace(req.Password) == "" {
+
+	password := strings.TrimSpace(req.NewPassword)
+	if password == "" {
+		password = strings.TrimSpace(req.Password)
+	}
+
+	if password == "" {
 		base.BadRequest(ctx, i18n.BadRequest, nil)
 		return
 	}
@@ -56,7 +64,7 @@ func (c *Controller) UpdatePasswordController(ctx *gin.Context) {
 	}
 
 	if err := c.svc.UpdatePasswordService(ctx.Request.Context(), id, &UpdatePasswordServiceRequest{
-		Password: req.Password,
+		Password: password,
 		ActionBy: actionBy,
 	}); err != nil {
 		base.HandleError(ctx, err)

@@ -61,7 +61,7 @@ var errorMappings = map[string]ResponseFunction{
 		return ValidateFailed(ctx, "ไม่พบสถานะใช้งาน", nil, params...)
 	},
 	"invalid credentials": func(ctx *gin.Context, _ string, _ any, params ...map[string]string) error {
-		return Unauthorized(ctx, "ข้อมูลรับรองไม่ถูกต้อง", nil, params...)
+		return Unauthorized(ctx, "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง", nil, params...)
 	},
 	"token expired": func(ctx *gin.Context, _ string, _ any, params ...map[string]string) error {
 		return Unauthorized(ctx, "โทเค็นหมดอายุ", nil, params...)
