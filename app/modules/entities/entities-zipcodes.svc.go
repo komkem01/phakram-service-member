@@ -19,8 +19,8 @@ func (s *Service) ListZipcodes(ctx context.Context, req *entitiesdto.ListZipcode
 		ctx,
 		&data,
 		&req.RequestPaginate,
-		[]string{"name", "sub_districts_id", "is_active"},
-		[]string{"created_at", "name", "sub_districts_id", "is_active"},
+		[]string{"name", "sub_district_id", "is_active"},
+		[]string{"created_at", "name", "sub_district_id", "is_active"},
 		nil,
 	)
 	if err != nil {
