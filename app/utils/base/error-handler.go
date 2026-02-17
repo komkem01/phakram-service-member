@@ -39,6 +39,30 @@ var errorMappings = map[string]ResponseFunction{
 	"member payment not found": func(ctx *gin.Context, _ string, _ any, params ...map[string]string) error {
 		return ValidateFailed(ctx, "ไม่พบข้อมูลการชำระเงิน", nil, params...)
 	},
+	"payment not found": func(ctx *gin.Context, _ string, _ any, params ...map[string]string) error {
+		return ValidateFailed(ctx, "ไม่พบข้อมูลการชำระเงิน", nil, params...)
+	},
+	"order is not pending": func(ctx *gin.Context, _ string, _ any, params ...map[string]string) error {
+		return ValidateFailed(ctx, "คำสั่งซื้อนี้ไม่อยู่ในสถานะรอชำระเงิน", nil, params...)
+	},
+	"payment confirmation already submitted": func(ctx *gin.Context, _ string, _ any, params ...map[string]string) error {
+		return ValidateFailed(ctx, "ยืนยันการชำระเงินแล้ว อยู่ระหว่างรอตรวจสอบ", nil, params...)
+	},
+	"payment confirmation not submitted": func(ctx *gin.Context, _ string, _ any, params ...map[string]string) error {
+		return ValidateFailed(ctx, "ยังไม่มีการยืนยันชำระเงินจากลูกค้า", nil, params...)
+	},
+	"rejection reason is required": func(ctx *gin.Context, _ string, _ any, params ...map[string]string) error {
+		return ValidateFailed(ctx, "กรุณาระบุเหตุผลที่ไม่อนุมัติ", nil, params...)
+	},
+	"shipping tracking number is required": func(ctx *gin.Context, _ string, _ any, params ...map[string]string) error {
+		return ValidateFailed(ctx, "กรุณากรอกเลขพัสดุก่อนเปลี่ยนเป็นสถานะกำลังจัดส่ง", nil, params...)
+	},
+	"payment was rejected waiting for resubmission": func(ctx *gin.Context, _ string, _ any, params ...map[string]string) error {
+		return ValidateFailed(ctx, "ไม่สามารถเปลี่ยนสถานะได้ กรุณารอลูกค้ายืนยันการชำระเงินใหม่", nil, params...)
+	},
+	"payment is in use": func(ctx *gin.Context, _ string, _ any, params ...map[string]string) error {
+		return ValidateFailed(ctx, "ไม่สามารถลบได้ เนื่องจาก payment ถูกอ้างอิงอยู่", nil, params...)
+	},
 	"cart items not found": func(ctx *gin.Context, _ string, _ any, params ...map[string]string) error {
 		return ValidateFailed(ctx, "ไม่พบสินค้าในตะกร้า", nil, params...)
 	},
@@ -88,6 +112,7 @@ var duplicateConstraintMessages = map[string]string{
 	"zipcodes_sub_district_name_uidx":  "รหัสไปรษณีย์ซ้ำ",
 	"members_member_no_uidx":           "รหัสสมาชิกซ้ำ",
 	"members_phone_uidx":               "เบอร์โทรซ้ำ",
+	"cart_items_cart_product_uidx":     "สินค้าในตะกร้าซ้ำ",
 }
 
 func duplicateErrorMessage(err error) (string, bool) {

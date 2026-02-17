@@ -25,6 +25,30 @@ type ProductStockRequest struct {
 	AdjustmentQty int    `json:"adjustment_qty"`
 }
 
+type ListProductStockControllerRequest struct {
+	base.RequestPaginate
+}
+
+func (c *Controller) ListController(ctx *gin.Context) {
+	span, _ := utils.LogSpanFromGin(ctx)
+	span.AddEvent(`product_stocks.ctl.list.start`)
+
+	var req ListProductStockControllerRequest
+	if err := ctx.ShouldBind(&req); err != nil {
+		base.BadRequest(ctx, i18n.BadRequest, nil)
+		return
+	}
+
+	data, page, err := c.svc.ListService(ctx.Request.Context(), &ListProductStocksServiceRequest{RequestPaginate: req.RequestPaginate})
+	if err != nil {
+		base.HandleError(ctx, err)
+		return
+	}
+
+	span.AddEvent(`product_stocks.ctl.list.success`)
+	base.Paginate(ctx, data, page)
+}
+
 func applyStockAdjustment(currentStock, currentRemaining int, action string, adjustmentQty int) (int, int, error) {
 	if adjustmentQty <= 0 {
 		return 0, 0, fmt.Errorf("adjustment_qty must be greater than 0")

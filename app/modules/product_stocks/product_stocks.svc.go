@@ -3,10 +3,37 @@ package productstocks
 import (
 	"context"
 	"phakram/app/modules/entities/ent"
+	"phakram/app/utils/base"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/uptrace/bun"
 )
+
+type ListProductStocksServiceRequest struct {
+	base.RequestPaginate
+}
+
+func (s *Service) ListService(ctx context.Context, req *ListProductStocksServiceRequest) ([]*ent.ProductStockEntity, *base.ResponsePaginate, error) {
+	data := make([]*ent.ProductStockEntity, 0)
+
+	_, page, err := base.NewInstant(s.bunDB.DB()).GetList(
+		ctx,
+		&data,
+		&req.RequestPaginate,
+		[]string{"product_id", "stock_amount", "remaining"},
+		[]string{"created_at", "product_id", "stock_amount", "remaining"},
+		func(selQ *bun.SelectQuery) *bun.SelectQuery {
+			selQ.Where("deleted_at IS NULL")
+			return selQ
+		},
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return data, page, nil
+}
 
 func (s *Service) GetByProductID(ctx context.Context, productID uuid.UUID) (*ent.ProductStockEntity, error) {
 	data := new(ent.ProductStockEntity)

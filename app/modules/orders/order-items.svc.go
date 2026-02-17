@@ -83,6 +83,26 @@ func (s *Service) CreateOrderItemService(ctx context.Context, orderID uuid.UUID,
 		return err
 	}
 
+	if req.Quantity <= 0 {
+		return errors.New("quantity must be greater than zero")
+	}
+
+	product := new(ent.ProductEntity)
+	if err := s.bunDB.DB().NewSelect().Model(product).Where("id = ?", req.ProductID).Scan(ctx); err != nil {
+		return err
+	}
+	if !product.IsActive {
+		return errors.New("product is inactive")
+	}
+
+	stock := new(ent.ProductStockEntity)
+	if err := s.bunDB.DB().NewSelect().Model(stock).Where("product_id = ?", req.ProductID).OrderExpr("updated_at DESC").Limit(1).Scan(ctx); err != nil {
+		return err
+	}
+	if stock.Remaining < req.Quantity {
+		return errors.New("insufficient product stock")
+	}
+
 	pricePerUnit, err := decimal.NewFromString(req.PricePerUnit)
 	if err != nil {
 		return err

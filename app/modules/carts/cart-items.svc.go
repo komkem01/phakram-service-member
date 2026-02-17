@@ -2,6 +2,7 @@ package carts
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"phakram/app/modules/entities/ent"
 	"phakram/app/utils"
@@ -43,6 +44,9 @@ func (s *Service) ListCartItemService(ctx context.Context, req *ListCartItemServ
 		[]string{"cart_id", "product_id"},
 		[]string{"created_at", "cart_id", "product_id"},
 		func(selQ *bun.SelectQuery) *bun.SelectQuery {
+			selQ.ExcludeColumn("price_per_unit", "total_item_amount")
+			selQ.ColumnExpr("COALESCE(price_per_unit, 0) AS price_per_unit")
+			selQ.ColumnExpr("COALESCE(total_item_amount, 0) AS total_item_amount")
 			selQ.Where("cart_id = ?", req.CartID)
 			return selQ
 		},
@@ -83,12 +87,43 @@ func (s *Service) CreateCartItemService(ctx context.Context, cartID uuid.UUID, r
 		return err
 	}
 
+	if req.Quantity <= 0 {
+		return errors.New("quantity must be greater than zero")
+	}
+
 	pricePerUnit, err := decimal.NewFromString(req.PricePerUnit)
 	if err != nil {
 		return err
 	}
 	totalItemAmount, err := parseTotalAmount(req.TotalItemAmount, pricePerUnit, req.Quantity)
 	if err != nil {
+		return err
+	}
+
+	existing := new(ent.CartItemEntity)
+	err = s.bunDB.DB().NewSelect().
+		Model(existing).
+		ExcludeColumn("price_per_unit", "total_item_amount").
+		ColumnExpr("COALESCE(price_per_unit, 0) AS price_per_unit").
+		ColumnExpr("COALESCE(total_item_amount, 0) AS total_item_amount").
+		Where("cart_id = ?", cartID).
+		Where("product_id = ?", req.ProductID).
+		Scan(ctx)
+	if err == nil {
+		existing.Quantity = req.Quantity
+		existing.PricePerUnit = pricePerUnit
+		existing.TotalItemAmount = totalItemAmount
+		existing.UpdatedAt = time.Now()
+
+		if err := s.item.UpdateCartItem(ctx, existing); err != nil {
+			return err
+		}
+
+		span.AddEvent(`carts.svc.items.create.upserted`)
+		return nil
+	}
+
+	if !errors.Is(err, sql.ErrNoRows) {
 		return err
 	}
 

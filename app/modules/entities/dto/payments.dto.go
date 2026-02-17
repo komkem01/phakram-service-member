@@ -9,4 +9,5 @@ import (
 type ListPaymentsRequest struct {
 	base.RequestPaginate
 	MemberID uuid.UUID
+	Status   string
 }

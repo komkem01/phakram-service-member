@@ -2,13 +2,40 @@ package entities
 
 import (
 	"context"
+	entitiesdto "phakram/app/modules/entities/dto"
 	"phakram/app/modules/entities/ent"
 	entitiesinf "phakram/app/modules/entities/inf"
+	"phakram/app/utils/base"
+	"strings"
 
 	"github.com/google/uuid"
+	"github.com/uptrace/bun"
 )
 
 var _ entitiesinf.PaymentEntity = (*Service)(nil)
+
+func (s *Service) ListPayments(ctx context.Context, req *entitiesdto.ListPaymentsRequest) ([]*ent.PaymentEntity, *base.ResponsePaginate, error) {
+	data := make([]*ent.PaymentEntity, 0)
+
+	_, page, err := base.NewInstant(s.db).GetList(
+		ctx,
+		&data,
+		&req.RequestPaginate,
+		[]string{"status"},
+		[]string{"id", "amount", "status", "approved_at"},
+		func(selQ *bun.SelectQuery) *bun.SelectQuery {
+			if strings.TrimSpace(req.Status) != "" {
+				selQ.Where("status = ?", req.Status)
+			}
+			return selQ
+		},
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return data, page, nil
+}
 
 func (s *Service) CreatePayment(ctx context.Context, payment *ent.PaymentEntity) error {
 	_, err := s.db.NewInsert().

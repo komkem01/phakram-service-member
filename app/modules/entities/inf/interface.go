@@ -167,6 +167,7 @@ type MemberFileEntity interface {
 }
 
 type PaymentEntity interface {
+	ListPayments(ctx context.Context, req *entitiesdto.ListPaymentsRequest) ([]*ent.PaymentEntity, *base.ResponsePaginate, error)
 	CreatePayment(ctx context.Context, payment *ent.PaymentEntity) error
 	GetPaymentByID(ctx context.Context, id uuid.UUID) (*ent.PaymentEntity, error)
 	UpdatePayment(ctx context.Context, payment *ent.PaymentEntity) error

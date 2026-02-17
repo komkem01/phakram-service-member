@@ -121,6 +121,20 @@ func apiSystem(r *gin.RouterGroup, mod *modules.Modules) {
 			products.PATCH("/:id/stock", mod.ProductStocks.Ctl.UpdateController)
 			products.DELETE("/:id/stock", mod.ProductStocks.Ctl.DeleteController)
 		}
+
+		productStocks := system.Group("/product_stocks")
+		{
+			productStocks.GET("/", mod.ProductStocks.Ctl.ListController)
+		}
+
+		payments := system.Group("/payments")
+		{
+			payments.GET("/", mod.Payments.Ctl.PaymentsList)
+			payments.GET("/:id", mod.Payments.Ctl.PaymentsInfo)
+			payments.POST("/", mod.Payments.Ctl.CreatePaymentController)
+			payments.PATCH("/:id", mod.Payments.Ctl.PaymentsUpdate)
+			payments.DELETE("/:id", mod.Payments.Ctl.PaymentsDelete)
+		}
 	}
 }
 
@@ -223,6 +237,9 @@ func apiAuth(r *gin.RouterGroup, mod *modules.Modules) {
 			orders.GET("/", mod.Orders.Ctl.ListOrderController)
 			orders.GET("/:id", mod.Orders.Ctl.InfoOrderController)
 			orders.GET("/:id/timeline", mod.Orders.Ctl.TimelineOrderController)
+			orders.POST("/:id/payment/confirm", mod.Orders.Ctl.ConfirmOrderPaymentController)
+			orders.PATCH("/:id/payment/approve", mod.Orders.Ctl.ApproveOrderPaymentController)
+			orders.PATCH("/:id/payment/reject", mod.Orders.Ctl.RejectOrderPaymentController)
 			orders.POST("/", mod.Orders.Ctl.CreateOrderController)
 			orders.PATCH("/:id", mod.Orders.Ctl.UpdateOrderController)
 			orders.DELETE("/:id", mod.Orders.Ctl.DeleteOrderController)

@@ -20,13 +20,14 @@ type ListOrderControllerRequest struct {
 }
 
 type CreateOrderControllerRequest struct {
-	MemberID       string `json:"member_id"`
-	PaymentID      string `json:"payment_id"`
-	AddressID      string `json:"address_id"`
-	Status         string `json:"status"`
-	TotalAmount    string `json:"total_amount"`
-	DiscountAmount string `json:"discount_amount"`
-	NetAmount      string `json:"net_amount"`
+	MemberID           string `json:"member_id"`
+	PaymentID          string `json:"payment_id"`
+	AddressID          string `json:"address_id"`
+	Status             string `json:"status"`
+	ShippingTrackingNo string `json:"shipping_tracking_no"`
+	TotalAmount        string `json:"total_amount"`
+	DiscountAmount     string `json:"discount_amount"`
+	NetAmount          string `json:"net_amount"`
 }
 
 type UpdateOrderControllerRequest = CreateOrderControllerRequest
@@ -145,10 +146,14 @@ func (c *Controller) CreateOrderController(ctx *gin.Context) {
 		return
 	}
 
-	paymentID, err := uuid.Parse(req.PaymentID)
-	if err != nil {
-		base.BadRequest(ctx, i18n.BadRequest, nil)
-		return
+	paymentID := uuid.Nil
+	if req.PaymentID != "" {
+		parsedPaymentID, err := uuid.Parse(req.PaymentID)
+		if err != nil {
+			base.BadRequest(ctx, i18n.BadRequest, nil)
+			return
+		}
+		paymentID = parsedPaymentID
 	}
 	addressID, err := uuid.Parse(req.AddressID)
 	if err != nil {
@@ -177,21 +182,23 @@ func (c *Controller) CreateOrderController(ctx *gin.Context) {
 		memberID = parsedMemberID
 	}
 
-	if err := c.svc.CreateOrderService(ctx.Request.Context(), &CreateOrderServiceRequest{
-		MemberID:       memberID,
-		PaymentID:      paymentID,
-		AddressID:      addressID,
-		Status:         req.Status,
-		TotalAmount:    req.TotalAmount,
-		DiscountAmount: req.DiscountAmount,
-		NetAmount:      req.NetAmount,
-	}); err != nil {
+	data, err := c.svc.CreateOrderService(ctx.Request.Context(), &CreateOrderServiceRequest{
+		MemberID:           memberID,
+		PaymentID:          paymentID,
+		AddressID:          addressID,
+		Status:             req.Status,
+		ShippingTrackingNo: req.ShippingTrackingNo,
+		TotalAmount:        req.TotalAmount,
+		DiscountAmount:     req.DiscountAmount,
+		NetAmount:          req.NetAmount,
+	})
+	if err != nil {
 		base.HandleError(ctx, err)
 		return
 	}
 
 	span.AddEvent(`orders.ctl.create.success`)
-	base.Success(ctx, nil)
+	base.Success(ctx, data)
 }
 
 func (c *Controller) UpdateOrderController(ctx *gin.Context) {
@@ -228,12 +235,13 @@ func (c *Controller) UpdateOrderController(ctx *gin.Context) {
 	}
 
 	if err := c.svc.UpdateOrderService(ctx.Request.Context(), orderID, &UpdateOrderServiceRequest{
-		PaymentID:      paymentID,
-		AddressID:      addressID,
-		Status:         req.Status,
-		TotalAmount:    req.TotalAmount,
-		DiscountAmount: req.DiscountAmount,
-		NetAmount:      req.NetAmount,
+		PaymentID:          paymentID,
+		AddressID:          addressID,
+		Status:             req.Status,
+		ShippingTrackingNo: req.ShippingTrackingNo,
+		TotalAmount:        req.TotalAmount,
+		DiscountAmount:     req.DiscountAmount,
+		NetAmount:          req.NetAmount,
 	}, requesterID, isAdmin); err != nil {
 		base.HandleError(ctx, err)
 		return

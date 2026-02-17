@@ -23,6 +23,9 @@ func (s *Service) ListCartItems(ctx context.Context, req *entitiesdto.ListCartIt
 		[]string{"cart_id", "product_id"},
 		[]string{"created_at", "cart_id", "product_id"},
 		func(selQ *bun.SelectQuery) *bun.SelectQuery {
+			selQ.ExcludeColumn("price_per_unit", "total_item_amount")
+			selQ.ColumnExpr("COALESCE(price_per_unit, 0) AS price_per_unit")
+			selQ.ColumnExpr("COALESCE(total_item_amount, 0) AS total_item_amount")
 			if req.MemberID != uuid.Nil {
 				selQ.Join("JOIN carts AS c ON c.id = cart_items.cart_id")
 				selQ.Where("c.member_id = ?", req.MemberID)
@@ -40,6 +43,9 @@ func (s *Service) GetCartItemByID(ctx context.Context, id uuid.UUID) (*ent.CartI
 	data := new(ent.CartItemEntity)
 	err := s.db.NewSelect().
 		Model(data).
+		ExcludeColumn("price_per_unit", "total_item_amount").
+		ColumnExpr("COALESCE(price_per_unit, 0) AS price_per_unit").
+		ColumnExpr("COALESCE(total_item_amount, 0) AS total_item_amount").
 		Where("id = ?", id).
 		Scan(ctx)
 	if err != nil {

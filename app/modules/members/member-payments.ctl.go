@@ -84,18 +84,19 @@ func (c *Controller) CreateMemberPaymentController(ctx *gin.Context) {
 	}
 
 	actionBy := getActionBy(ctx)
-	if err := c.svc.CreateMemberPaymentService(ctx.Request.Context(), memberID, &CreateMemberPaymentServiceRequest{
+	data, err := c.svc.CreateMemberPaymentService(ctx.Request.Context(), memberID, &CreateMemberPaymentServiceRequest{
 		PaymentID: paymentID,
 		Quantity:  req.Quantity,
 		Price:     req.Price,
 		ActionBy:  actionBy,
-	}); err != nil {
+	})
+	if err != nil {
 		base.HandleError(ctx, err)
 		return
 	}
 
 	span.AddEvent(`members.ctl.payment.create.success`)
-	base.Success(ctx, nil)
+	base.Success(ctx, data)
 }
 
 func (c *Controller) InfoMemberPaymentController(ctx *gin.Context) {

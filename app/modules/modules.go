@@ -13,6 +13,7 @@ import (
 	"phakram/app/modules/genders"
 	"phakram/app/modules/members"
 	"phakram/app/modules/orders"
+	"phakram/app/modules/payments"
 	"phakram/app/modules/prefixes"
 	productdetails "phakram/app/modules/product_details"
 	productstocks "phakram/app/modules/product_stocks"
@@ -62,6 +63,7 @@ type Modules struct {
 	Auth           *auth.Module
 	Members        *members.Module
 	Orders         *orders.Module
+	Payments       *payments.Module
 	Carts          *carts.Module
 }
 
@@ -110,6 +112,7 @@ func modulesInit() {
 		entitiesMod.Svc,
 	)
 	ordersMod := orders.New(db.Svc, entitiesMod.Svc, entitiesMod.Svc)
+	paymentsMod := payments.New(db.Svc, entitiesMod.Svc)
 	cartsMod := carts.New(db.Svc, entitiesMod.Svc, entitiesMod.Svc)
 	mod = &Modules{
 		Conf:           confMod,
@@ -138,6 +141,7 @@ func modulesInit() {
 		Auth:           authMod,
 		Members:        membersMod,
 		Orders:         ordersMod,
+		Payments:       paymentsMod,
 		Carts:          cartsMod,
 	}
 

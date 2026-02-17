@@ -45,13 +45,13 @@ func (s *Service) ListMemberPaymentsService(ctx context.Context, req *ListMember
 	return data, page, nil
 }
 
-func (s *Service) CreateMemberPaymentService(ctx context.Context, memberID uuid.UUID, req *CreateMemberPaymentServiceRequest) error {
+func (s *Service) CreateMemberPaymentService(ctx context.Context, memberID uuid.UUID, req *CreateMemberPaymentServiceRequest) (*ent.MemberPaymentEntity, error) {
 	span, _ := utils.LogSpanFromContext(ctx)
 	span.AddEvent(`members.svc.payment.create.start`)
 
 	price, err := decimal.NewFromString(req.Price)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	now := time.Now()
@@ -73,11 +73,11 @@ func (s *Service) CreateMemberPaymentService(ctx context.Context, memberID uuid.
 	})
 	if err != nil {
 		s.logMemberActionFailed(ctx, ent.AuditActionCreated, "create_member_payment", memberPayment.ID, req.ActionBy, now, err)
-		return err
+		return nil, err
 	}
 
 	span.AddEvent(`members.svc.payment.create.success`)
-	return nil
+	return memberPayment, nil
 }
 
 func (s *Service) InfoMemberPaymentService(ctx context.Context, memberID uuid.UUID, rowID uuid.UUID) (*ent.MemberPaymentEntity, error) {
