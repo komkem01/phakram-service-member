@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"strings"
 	"time"
 
 	"phakram/app/modules/entities/ent"
@@ -65,10 +66,13 @@ func (s *Service) createRegisterService(ctx context.Context, req *RegisterServic
 
 	role := ent.RoleTypeCustomer
 	if allowRoleSelection {
-		if req.Role == string(ent.RoleTypeAdmin) {
+		switch strings.ToLower(strings.TrimSpace(req.Role)) {
+		case string(ent.RoleTypeAdmin):
 			role = ent.RoleTypeAdmin
-		} else if req.Role == string(ent.RoleTypeCustomer) {
+		case string(ent.RoleTypeCustomer):
 			role = ent.RoleTypeCustomer
+		default:
+			return errors.New("invalid role")
 		}
 	}
 

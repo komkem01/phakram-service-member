@@ -95,6 +95,32 @@ func apiSystem(r *gin.RouterGroup, mod *modules.Modules) {
 			tiers.PATCH("/:id", mod.Tiers.Ctl.TiersUpdate)
 			tiers.DELETE("/:id", mod.Tiers.Ctl.TiersDelete)
 		}
+		categories := system.Group("/categories")
+		{
+			categories.GET("/", mod.Categories.Ctl.CategoriesList)
+			categories.GET("/:id", mod.Categories.Ctl.CategoriesInfo)
+			categories.POST("/", mod.Categories.Ctl.CreateCategoryController)
+			categories.PATCH("/:id", mod.Categories.Ctl.CategoriesUpdate)
+			categories.DELETE("/:id", mod.Categories.Ctl.CategoriesDelete)
+		}
+		products := system.Group("/products")
+		{
+			products.GET("/", mod.Products.Ctl.ProductsList)
+			products.GET("/:id", mod.Products.Ctl.ProductsInfo)
+			products.POST("/", mod.Products.Ctl.CreateProductController)
+			products.PATCH("/:id", mod.Products.Ctl.ProductsUpdate)
+			products.DELETE("/:id", mod.Products.Ctl.ProductsDelete)
+
+			products.GET("/:id/detail", mod.ProductDetails.Ctl.InfoController)
+			products.POST("/:id/detail", mod.ProductDetails.Ctl.CreateController)
+			products.PATCH("/:id/detail", mod.ProductDetails.Ctl.UpdateController)
+			products.DELETE("/:id/detail", mod.ProductDetails.Ctl.DeleteController)
+
+			products.GET("/:id/stock", mod.ProductStocks.Ctl.InfoController)
+			products.POST("/:id/stock", mod.ProductStocks.Ctl.CreateController)
+			products.PATCH("/:id/stock", mod.ProductStocks.Ctl.UpdateController)
+			products.DELETE("/:id/stock", mod.ProductStocks.Ctl.DeleteController)
+		}
 	}
 }
 
@@ -196,6 +222,7 @@ func apiAuth(r *gin.RouterGroup, mod *modules.Modules) {
 		{
 			orders.GET("/", mod.Orders.Ctl.ListOrderController)
 			orders.GET("/:id", mod.Orders.Ctl.InfoOrderController)
+			orders.GET("/:id/timeline", mod.Orders.Ctl.TimelineOrderController)
 			orders.POST("/", mod.Orders.Ctl.CreateOrderController)
 			orders.PATCH("/:id", mod.Orders.Ctl.UpdateOrderController)
 			orders.DELETE("/:id", mod.Orders.Ctl.DeleteOrderController)

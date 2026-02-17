@@ -5,6 +5,7 @@ import (
 	"phakram/app/modules/auth"
 	"phakram/app/modules/banks"
 	"phakram/app/modules/carts"
+	"phakram/app/modules/categories"
 	"phakram/app/modules/districts"
 	"phakram/app/modules/entities"
 	"phakram/app/modules/example"
@@ -13,11 +14,14 @@ import (
 	"phakram/app/modules/members"
 	"phakram/app/modules/orders"
 	"phakram/app/modules/prefixes"
+	productdetails "phakram/app/modules/product_details"
+	productstocks "phakram/app/modules/product_stocks"
+	"phakram/app/modules/products"
 	"phakram/app/modules/provinces"
 	"phakram/app/modules/sentry"
 	"phakram/app/modules/specs"
-	"phakram/app/modules/storages"
 	"phakram/app/modules/statuses"
+	"phakram/app/modules/storages"
 	subdistricts "phakram/app/modules/sub_districts"
 	"phakram/app/modules/tiers"
 	"phakram/app/modules/zipcodes"
@@ -39,22 +43,26 @@ type Modules struct {
 	DB     *database.DatabaseModule
 	ENT    *entities.Module
 	// Kafka *kafka.Module
-	Example      *example.Module
-	Example2     *exampletwo.Module
-	Genders      *genders.Module
-	Prefixes     *prefixes.Module
-	Banks        *banks.Module
-	Provinces    *provinces.Module
-	Districts    *districts.Module
-	SubDistricts *subdistricts.Module
-	Zipcodes     *zipcodes.Module
-	Statuses     *statuses.Module
-	Tiers        *tiers.Module
-	Storages     *storages.Module
-	Auth         *auth.Module
-	Members      *members.Module
-	Orders       *orders.Module
-	Carts        *carts.Module
+	Example        *example.Module
+	Example2       *exampletwo.Module
+	Genders        *genders.Module
+	Prefixes       *prefixes.Module
+	Banks          *banks.Module
+	Provinces      *provinces.Module
+	Districts      *districts.Module
+	SubDistricts   *subdistricts.Module
+	Zipcodes       *zipcodes.Module
+	Statuses       *statuses.Module
+	Tiers          *tiers.Module
+	Categories     *categories.Module
+	Products       *products.Module
+	ProductDetails *productdetails.Module
+	ProductStocks  *productstocks.Module
+	Storages       *storages.Module
+	Auth           *auth.Module
+	Members        *members.Module
+	Orders         *orders.Module
+	Carts          *carts.Module
 }
 
 func modulesInit() {
@@ -82,6 +90,10 @@ func modulesInit() {
 	zipcodesMod := zipcodes.New(db.Svc, entitiesMod.Svc)
 	statusesMod := statuses.New(db.Svc, entitiesMod.Svc)
 	tiersMod := tiers.New(db.Svc, entitiesMod.Svc)
+	categoriesMod := categories.New(db.Svc, entitiesMod.Svc)
+	productsMod := products.New(db.Svc, entitiesMod.Svc)
+	productDetailsMod := productdetails.New(db.Svc)
+	productStocksMod := productstocks.New(db.Svc)
 	storagesMod := storages.New(db.Svc, entitiesMod.Svc)
 	authMod := auth.New(db.Svc, conf.AppKey)
 	membersMod := members.New(
@@ -100,29 +112,33 @@ func modulesInit() {
 	ordersMod := orders.New(db.Svc, entitiesMod.Svc, entitiesMod.Svc)
 	cartsMod := carts.New(db.Svc, entitiesMod.Svc, entitiesMod.Svc)
 	mod = &Modules{
-		Conf:         confMod,
-		Specs:        specsMod,
-		Log:          logMod,
-		OTEL:         otel,
-		Sentry:       sentryMod,
-		DB:           db,
-		ENT:          entitiesMod,
-		Example:      exampleMod,
-		Example2:     exampleMod2,
-		Genders:      gendersMod,
-		Prefixes:     prefixesMod,
-		Banks:        banksMod,
-		Provinces:    provincesMod,
-		Districts:    districtsMod,
-		SubDistricts: subDistrictsMod,
-		Zipcodes:     zipcodesMod,
-		Statuses:     statusesMod,
-		Tiers:        tiersMod,
-		Storages:     storagesMod,
-		Auth:         authMod,
-		Members:      membersMod,
-		Orders:       ordersMod,
-		Carts:        cartsMod,
+		Conf:           confMod,
+		Specs:          specsMod,
+		Log:            logMod,
+		OTEL:           otel,
+		Sentry:         sentryMod,
+		DB:             db,
+		ENT:            entitiesMod,
+		Example:        exampleMod,
+		Example2:       exampleMod2,
+		Genders:        gendersMod,
+		Prefixes:       prefixesMod,
+		Banks:          banksMod,
+		Provinces:      provincesMod,
+		Districts:      districtsMod,
+		SubDistricts:   subDistrictsMod,
+		Zipcodes:       zipcodesMod,
+		Statuses:       statusesMod,
+		Tiers:          tiersMod,
+		Categories:     categoriesMod,
+		Products:       productsMod,
+		ProductDetails: productDetailsMod,
+		ProductStocks:  productStocksMod,
+		Storages:       storagesMod,
+		Auth:           authMod,
+		Members:        membersMod,
+		Orders:         ordersMod,
+		Carts:          cartsMod,
 	}
 
 	log.Infof("all modules initialized")

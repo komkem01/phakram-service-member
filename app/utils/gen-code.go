@@ -3,6 +3,8 @@ package utils
 import (
 	"context"
 	"crypto/rand"
+	"database/sql"
+	"errors"
 	"fmt"
 	"math/big"
 	"strconv"
@@ -48,19 +50,19 @@ func GenerateMemberNo(ctx context.Context, db bun.IDB) (string, error) {
 		MemberNo string `bun:"member_no"`
 	}
 
-	// err := db.NewSelect().
-	// 	Model((*ent.MemberEntity)(nil)).
-	// 	Column("member_no").
-	// 	Where("member_no LIKE ?", MemberNoPrefix+"%").
-	// 	OrderExpr("member_no DESC").
-	// 	Limit(1).
-	// 	Scan(ctx, &last)
-	// if err != nil {
-	// 	if errors.Is(err, sql.ErrNoRows) {
-	// 		return fmt.Sprintf("%s%0*d", MemberNoPrefix, MemberNoDigits, 1), nil
-	// 	}
-	// 	return "", err
-	// }
+	err := db.NewSelect().
+		TableExpr("members").
+		Column("member_no").
+		Where("member_no LIKE ?", MemberNoPrefix+"%").
+		OrderExpr("member_no DESC").
+		Limit(1).
+		Scan(ctx, &last)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return fmt.Sprintf("%s%0*d", MemberNoPrefix, MemberNoDigits, 1), nil
+		}
+		return "", err
+	}
 
 	seqStr := strings.TrimPrefix(last.MemberNo, MemberNoPrefix)
 	seq, err := strconv.Atoi(seqStr)

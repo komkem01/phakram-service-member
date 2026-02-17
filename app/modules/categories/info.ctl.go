@@ -1,4 +1,4 @@
-package statuses
+package categories
 
 import (
 	"log/slog"
@@ -10,28 +10,30 @@ import (
 	"github.com/google/uuid"
 )
 
-type InfoStatusControllerRequestUri struct {
+type InfoCategoryControllerRequestUri struct {
 	ID string `uri:"id"`
 }
 
-type InfoStatusControllerResponses struct {
-	ID        uuid.UUID `json:"id"`
-	NameTh    string    `json:"name_th"`
-	NameEn    string    `json:"name_en"`
-	IsActive  bool      `json:"is_active"`
-	CreatedAt string    `json:"created_at"`
+type InfoCategoryControllerResponses struct {
+	ID        uuid.UUID  `json:"id"`
+	ParentID  *uuid.UUID `json:"parent_id"`
+	NameTh    string     `json:"name_th"`
+	NameEn    string     `json:"name_en"`
+	IsActive  bool       `json:"is_active"`
+	CreatedAt string     `json:"created_at"`
+	UpdatedAt string     `json:"updated_at"`
 }
 
 func (c *Controller) InfoController(ctx *gin.Context) {
 	span, log := utils.LogSpanFromGin(ctx)
 
-	var req InfoStatusControllerRequestUri
+	var req InfoCategoryControllerRequestUri
 	if err := ctx.ShouldBindUri(&req); err != nil {
 		log.With(slog.Any(`body`, req)).Errf(`internal: %s`, err)
 		base.BadRequest(ctx, i18n.BadRequest, nil)
 		return
 	}
-	span.AddEvent(`statuses.ctl.info.request`)
+	span.AddEvent(`categories.ctl.info.request`)
 
 	id, err := uuid.Parse(req.ID)
 	if err != nil {
@@ -45,9 +47,9 @@ func (c *Controller) InfoController(ctx *gin.Context) {
 		base.HandleError(ctx, err)
 		return
 	}
-	span.AddEvent(`statuses.ctl.info.callsvc`)
+	span.AddEvent(`categories.ctl.info.callsvc`)
 
-	var resp InfoStatusControllerResponses
+	var resp InfoCategoryControllerResponses
 	if err := utils.CopyNTimeToUnix(&resp, data); err != nil {
 		log.With(slog.Any(`body`, req)).Errf(`internal: %s`, err)
 		base.InternalServerError(ctx, err.Error(), nil)
@@ -57,6 +59,6 @@ func (c *Controller) InfoController(ctx *gin.Context) {
 	base.Success(ctx, resp)
 }
 
-func (c *Controller) StatusesInfo(ctx *gin.Context) {
+func (c *Controller) CategoriesInfo(ctx *gin.Context) {
 	c.InfoController(ctx)
 }

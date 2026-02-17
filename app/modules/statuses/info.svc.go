@@ -12,6 +12,7 @@ type InfoStatusServiceResponses struct {
 	ID        uuid.UUID `json:"id"`
 	NameTh    string    `json:"name_th"`
 	NameEn    string    `json:"name_en"`
+	IsActive  bool      `json:"is_active"`
 	CreatedAt string    `json:"created_at"`
 }
 
@@ -29,6 +30,7 @@ func (s *Service) InfoService(ctx context.Context, id uuid.UUID) (*InfoStatusSer
 		ID:        data.ID,
 		NameTh:    data.NameTh,
 		NameEn:    data.NameEn,
+		IsActive:  data.IsActive,
 		CreatedAt: data.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	}
 	span.AddEvent(`statuses.svc.info.success`)

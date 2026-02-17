@@ -44,6 +44,7 @@ func (s *Service) ListService(ctx context.Context, req *ListBankServiceRequest) 
 			NameAbbTh: item.NameAbbTh,
 			NameEn:    item.NameEn,
 			NameAbbEn: item.NameAbbEn,
+			IsActive:  item.IsActive,
 			CreatedAt: item.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 			UpdatedAt: item.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		}

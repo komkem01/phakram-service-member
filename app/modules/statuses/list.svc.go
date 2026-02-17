@@ -18,6 +18,7 @@ type ListStatusServiceResponses struct {
 	ID        uuid.UUID `json:"id"`
 	NameTh    string    `json:"name_th"`
 	NameEn    string    `json:"name_en"`
+	IsActive  bool      `json:"is_active"`
 	CreatedAt string    `json:"created_at"`
 }
 
@@ -38,6 +39,7 @@ func (s *Service) ListService(ctx context.Context, req *ListStatusServiceRequest
 			ID:        item.ID,
 			NameTh:    item.NameTh,
 			NameEn:    item.NameEn,
+			IsActive:  item.IsActive,
 			CreatedAt: item.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		}
 		response = append(response, temp)

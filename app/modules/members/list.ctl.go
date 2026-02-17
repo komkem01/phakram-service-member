@@ -11,6 +11,7 @@ import (
 
 type ListControllerRequest struct {
 	base.RequestPaginate
+	Role string `json:"role" form:"role"`
 }
 
 func (c *Controller) ListController(ctx *gin.Context) {
@@ -30,6 +31,7 @@ func (c *Controller) ListController(ctx *gin.Context) {
 
 	data, page, err := c.svc.ListService(ctx.Request.Context(), &ListServiceRequest{
 		RequestPaginate: req.RequestPaginate,
+		Role:            req.Role,
 	})
 	if err != nil {
 		base.HandleError(ctx, err)

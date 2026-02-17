@@ -1,4 +1,4 @@
-package statuses
+package products
 
 import (
 	"log/slog"
@@ -8,30 +8,35 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
 )
 
-type InfoStatusControllerRequestUri struct {
+type InfoProductControllerRequestUri struct {
 	ID string `uri:"id"`
 }
 
-type InfoStatusControllerResponses struct {
-	ID        uuid.UUID `json:"id"`
-	NameTh    string    `json:"name_th"`
-	NameEn    string    `json:"name_en"`
-	IsActive  bool      `json:"is_active"`
-	CreatedAt string    `json:"created_at"`
+type InfoProductControllerResponses struct {
+	ID         uuid.UUID       `json:"id"`
+	CategoryID uuid.UUID       `json:"category_id"`
+	NameTh     string          `json:"name_th"`
+	NameEn     string          `json:"name_en"`
+	ProductNo  string          `json:"product_no"`
+	Price      decimal.Decimal `json:"price"`
+	IsActive   bool            `json:"is_active"`
+	CreatedAt  string          `json:"created_at"`
+	UpdatedAt  string          `json:"updated_at"`
 }
 
 func (c *Controller) InfoController(ctx *gin.Context) {
 	span, log := utils.LogSpanFromGin(ctx)
 
-	var req InfoStatusControllerRequestUri
+	var req InfoProductControllerRequestUri
 	if err := ctx.ShouldBindUri(&req); err != nil {
 		log.With(slog.Any(`body`, req)).Errf(`internal: %s`, err)
 		base.BadRequest(ctx, i18n.BadRequest, nil)
 		return
 	}
-	span.AddEvent(`statuses.ctl.info.request`)
+	span.AddEvent(`products.ctl.info.request`)
 
 	id, err := uuid.Parse(req.ID)
 	if err != nil {
@@ -45,9 +50,9 @@ func (c *Controller) InfoController(ctx *gin.Context) {
 		base.HandleError(ctx, err)
 		return
 	}
-	span.AddEvent(`statuses.ctl.info.callsvc`)
+	span.AddEvent(`products.ctl.info.callsvc`)
 
-	var resp InfoStatusControllerResponses
+	var resp InfoProductControllerResponses
 	if err := utils.CopyNTimeToUnix(&resp, data); err != nil {
 		log.With(slog.Any(`body`, req)).Errf(`internal: %s`, err)
 		base.InternalServerError(ctx, err.Error(), nil)
@@ -57,6 +62,6 @@ func (c *Controller) InfoController(ctx *gin.Context) {
 	base.Success(ctx, resp)
 }
 
-func (c *Controller) StatusesInfo(ctx *gin.Context) {
+func (c *Controller) ProductsInfo(ctx *gin.Context) {
 	c.InfoController(ctx)
 }

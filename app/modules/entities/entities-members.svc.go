@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/uptrace/bun"
 )
 
 var _ entitiesinf.MemberEntity = (*Service)(nil)
@@ -49,7 +50,12 @@ func (s *Service) ListMembers(ctx context.Context, req *entitiesdto.ListMembersR
 		&req.RequestPaginate,
 		[]string{"member_no", "firstname_th", "lastname_th", "firstname_en", "lastname_en", "phone"},
 		[]string{"created_at", "member_no", "firstname_th", "lastname_th", "firstname_en", "lastname_en"},
-		nil,
+		func(selQ *bun.SelectQuery) *bun.SelectQuery {
+			if req.Role != "" {
+				selQ = selQ.Where("role = ?", req.Role)
+			}
+			return selQ
+		},
 	)
 	if err != nil {
 		return nil, nil, err

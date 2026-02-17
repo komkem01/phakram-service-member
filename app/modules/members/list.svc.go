@@ -2,7 +2,7 @@ package members
 
 import (
 	"context"
-	"phakram/app/modules/entities/dto"
+	entitiesdto "phakram/app/modules/entities/dto"
 	"phakram/app/modules/entities/ent"
 	"phakram/app/utils"
 	"phakram/app/utils/base"
@@ -13,6 +13,7 @@ import (
 
 type ListServiceRequest struct {
 	base.RequestPaginate
+	Role string
 }
 
 type ListServiceResponse struct {
@@ -42,6 +43,7 @@ func (s *Service) ListService(ctx context.Context, req *ListServiceRequest) ([]*
 
 	data, page, err := s.db.ListMembers(ctx, &entitiesdto.ListMembersRequest{
 		RequestPaginate: req.RequestPaginate,
+		Role:            req.Role,
 	})
 	if err != nil {
 		return nil, nil, err

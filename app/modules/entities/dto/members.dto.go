@@ -9,4 +9,5 @@ import (
 type ListMembersRequest struct {
 	base.RequestPaginate
 	MemberID uuid.UUID
+	Role     string
 }

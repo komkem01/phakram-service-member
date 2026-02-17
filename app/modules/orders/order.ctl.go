@@ -109,6 +109,32 @@ func (c *Controller) InfoOrderController(ctx *gin.Context) {
 	base.Success(ctx, data)
 }
 
+func (c *Controller) TimelineOrderController(ctx *gin.Context) {
+	span, _ := utils.LogSpanFromGin(ctx)
+	span.AddEvent(`orders.ctl.timeline.start`)
+
+	orderID, ok := c.parseOrderID(ctx)
+	if !ok {
+		return
+	}
+
+	requesterID, hasRequester := auth.GetMemberID(ctx)
+	isAdmin := auth.GetIsAdmin(ctx)
+	if !isAdmin && !hasRequester {
+		base.Forbidden(ctx, i18n.Forbidden, nil)
+		return
+	}
+
+	data, err := c.svc.TimelineOrderService(ctx.Request.Context(), orderID, requesterID, isAdmin)
+	if err != nil {
+		base.HandleError(ctx, err)
+		return
+	}
+
+	span.AddEvent(`orders.ctl.timeline.success`)
+	base.Success(ctx, data)
+}
+
 func (c *Controller) CreateOrderController(ctx *gin.Context) {
 	span, _ := utils.LogSpanFromGin(ctx)
 	span.AddEvent(`orders.ctl.create.start`)

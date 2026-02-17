@@ -35,6 +35,7 @@ func (s *Service) InfoService(ctx context.Context, id uuid.UUID) (*InfoBankServi
 		NameAbbTh: data.NameAbbTh,
 		NameEn:    data.NameEn,
 		NameAbbEn: data.NameAbbEn,
+		IsActive:  data.IsActive,
 		CreatedAt: data.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		UpdatedAt: data.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	}

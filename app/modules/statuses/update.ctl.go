@@ -15,8 +15,9 @@ type UpdateStatusControllerRequestUri struct {
 }
 
 type UpdateStatusController struct {
-	NameTh string `json:"name_th"`
-	NameEn string `json:"name_en"`
+	NameTh   string `json:"name_th"`
+	NameEn   string `json:"name_en"`
+	IsActive *bool  `json:"is_active"`
 }
 
 func (c *Controller) UpdateController(ctx *gin.Context) {
@@ -46,8 +47,9 @@ func (c *Controller) UpdateController(ctx *gin.Context) {
 	span.AddEvent(`statuses.ctl.update.request_body`)
 
 	if err := c.svc.UpdateService(ctx, id, &UpdateStatusService{
-		NameTh: req.NameTh,
-		NameEn: req.NameEn,
+		NameTh:   req.NameTh,
+		NameEn:   req.NameEn,
+		IsActive: req.IsActive,
 	}); err != nil {
 		base.HandleError(ctx, err)
 		return

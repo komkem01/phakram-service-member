@@ -1,4 +1,4 @@
-package statuses
+package categories
 
 import (
 	"log/slog"
@@ -10,39 +10,41 @@ import (
 	"github.com/google/uuid"
 )
 
-type ListStatusControllerRequest struct {
+type ListCategoryControllerRequest struct {
 	base.RequestPaginate
 }
 
-type ListStatusControllerResponses struct {
-	ID        uuid.UUID `json:"id"`
-	NameTh    string    `json:"name_th"`
-	NameEn    string    `json:"name_en"`
-	IsActive  bool      `json:"is_active"`
-	CreatedAt string    `json:"created_at"`
+type ListCategoryControllerResponses struct {
+	ID        uuid.UUID  `json:"id"`
+	ParentID  *uuid.UUID `json:"parent_id"`
+	NameTh    string     `json:"name_th"`
+	NameEn    string     `json:"name_en"`
+	IsActive  bool       `json:"is_active"`
+	CreatedAt string     `json:"created_at"`
+	UpdatedAt string     `json:"updated_at"`
 }
 
-func (c *Controller) StatusesList(ctx *gin.Context) {
+func (c *Controller) CategoriesList(ctx *gin.Context) {
 	span, log := utils.LogSpanFromGin(ctx)
 
-	var req ListStatusControllerRequest
+	var req ListCategoryControllerRequest
 	if err := ctx.ShouldBind(&req); err != nil {
 		log.With(slog.Any(`body`, req)).Errf(`internal: %s`, err)
 		base.BadRequest(ctx, i18n.BadRequest, nil)
 		return
 	}
-	span.AddEvent(`statuses.ctl.list.request`)
+	span.AddEvent(`categories.ctl.list.request`)
 
-	data, page, err := c.svc.ListService(ctx, &ListStatusServiceRequest{
+	data, page, err := c.svc.ListService(ctx, &ListCategoryServiceRequest{
 		RequestPaginate: req.RequestPaginate,
 	})
 	if err != nil {
 		base.HandleError(ctx, err)
 		return
 	}
-	span.AddEvent(`statuses.ctl.list.callsvc`)
+	span.AddEvent(`categories.ctl.list.callsvc`)
 
-	var resp []*ListStatusControllerResponses
+	var resp []*ListCategoryControllerResponses
 	if err := utils.CopyNTimeToUnix(&resp, data); err != nil {
 		log.With(slog.Any(`body`, req)).Errf(`internal: %s`, err)
 		base.InternalServerError(ctx, err.Error(), nil)

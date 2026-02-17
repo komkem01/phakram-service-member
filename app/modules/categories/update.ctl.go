@@ -1,4 +1,4 @@
-package banks
+package categories
 
 import (
 	"log/slog"
@@ -10,28 +10,27 @@ import (
 	"github.com/google/uuid"
 )
 
-type UpdateBankControllerRequestUri struct {
+type UpdateCategoryControllerRequestUri struct {
 	ID string `uri:"id"`
 }
 
-type UpdateBankController struct {
-	NameTh    string `json:"name_th"`
-	NameAbbTh string `json:"name_abb_th"`
-	NameEn    string `json:"name_en"`
-	NameAbbEn string `json:"name_abb_en"`
-	IsActive  bool   `json:"is_active"`
+type UpdateCategoryController struct {
+	ParentID *string `json:"parent_id"`
+	NameTh   string  `json:"name_th"`
+	NameEn   string  `json:"name_en"`
+	IsActive *bool   `json:"is_active"`
 }
 
 func (c *Controller) UpdateController(ctx *gin.Context) {
 	span, log := utils.LogSpanFromGin(ctx)
 
-	var reqUri UpdateBankControllerRequestUri
+	var reqUri UpdateCategoryControllerRequestUri
 	if err := ctx.ShouldBindUri(&reqUri); err != nil {
 		log.With(slog.Any(`body`, reqUri)).Errf(`internal: %s`, err)
 		base.BadRequest(ctx, i18n.BadRequest, nil)
 		return
 	}
-	span.AddEvent(`banks.ctl.update.request_uri`)
+	span.AddEvent(`categories.ctl.update.request_uri`)
 
 	id, err := uuid.Parse(reqUri.ID)
 	if err != nil {
@@ -40,29 +39,28 @@ func (c *Controller) UpdateController(ctx *gin.Context) {
 		return
 	}
 
-	var req UpdateBankController
+	var req UpdateCategoryController
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		log.With(slog.Any(`body`, req)).Errf(`internal: %s`, err)
 		base.BadRequest(ctx, i18n.BadRequest, nil)
 		return
 	}
-	span.AddEvent(`banks.ctl.update.request_body`)
+	span.AddEvent(`categories.ctl.update.request_body`)
 
-	if err := c.svc.UpdateService(ctx, id, &UpdateBankService{
-		NameTh:    req.NameTh,
-		NameAbbTh: req.NameAbbTh,
-		NameEn:    req.NameEn,
-		NameAbbEn: req.NameAbbEn,
-		IsActive:  req.IsActive,
+	if err := c.svc.UpdateService(ctx, id, &UpdateCategoryService{
+		ParentID: req.ParentID,
+		NameTh:   req.NameTh,
+		NameEn:   req.NameEn,
+		IsActive: req.IsActive,
 	}); err != nil {
 		base.HandleError(ctx, err)
 		return
 	}
-	span.AddEvent(`banks.ctl.update.callsvc`)
+	span.AddEvent(`categories.ctl.update.callsvc`)
 
 	base.Success(ctx, nil)
 }
 
-func (c *Controller) BanksUpdate(ctx *gin.Context) {
+func (c *Controller) CategoriesUpdate(ctx *gin.Context) {
 	c.UpdateController(ctx)
 }
