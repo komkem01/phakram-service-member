@@ -172,6 +172,11 @@ func apiAuth(r *gin.RouterGroup, mod *modules.Modules) {
 	auth := r.Group("/auth", mod.Auth.Ctl.AuthMiddleware())
 	{
 		auth.GET("/me", mod.Auth.Ctl.GetInfoController)
+		auth.GET("/notifications", mod.Orders.Ctl.ListMemberNotificationController)
+		auth.GET("/notifications/unread-count", mod.Orders.Ctl.CountMemberUnreadNotificationsController)
+		auth.PATCH("/notifications/read-all", mod.Orders.Ctl.MarkAllMemberNotificationsReadController)
+		auth.PATCH("/notifications/:id/read", mod.Orders.Ctl.MarkMemberNotificationReadController)
+		auth.PATCH("/notifications/:id/unread", mod.Orders.Ctl.MarkMemberNotificationUnreadController)
 		auth.POST("/act-as", mod.Auth.Ctl.ActAsMemberController)
 		auth.POST("/act-as/exit", mod.Auth.Ctl.ExitActAsController)
 
@@ -238,8 +243,10 @@ func apiAuth(r *gin.RouterGroup, mod *modules.Modules) {
 			orders.GET("/:id", mod.Orders.Ctl.InfoOrderController)
 			orders.GET("/:id/timeline", mod.Orders.Ctl.TimelineOrderController)
 			orders.POST("/:id/payment/confirm", mod.Orders.Ctl.ConfirmOrderPaymentController)
+			orders.PATCH("/:id/payment/appeal", mod.Orders.Ctl.AppealOrderPaymentController)
 			orders.PATCH("/:id/payment/approve", mod.Orders.Ctl.ApproveOrderPaymentController)
 			orders.PATCH("/:id/payment/reject", mod.Orders.Ctl.RejectOrderPaymentController)
+			orders.POST("/:id/reorder", mod.Orders.Ctl.ReorderController)
 			orders.POST("/", mod.Orders.Ctl.CreateOrderController)
 			orders.PATCH("/:id", mod.Orders.Ctl.UpdateOrderController)
 			orders.DELETE("/:id", mod.Orders.Ctl.DeleteOrderController)

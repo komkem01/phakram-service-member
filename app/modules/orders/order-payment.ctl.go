@@ -21,6 +21,10 @@ type RejectOrderPaymentControllerRequest struct {
 	Reason string `json:"reason"`
 }
 
+type AppealOrderPaymentControllerRequest struct {
+	Reason string `json:"reason"`
+}
+
 func (c *Controller) ConfirmOrderPaymentController(ctx *gin.Context) {
 	span, _ := utils.LogSpanFromGin(ctx)
 	span.AddEvent(`orders.ctl.payment.confirm.start`)
@@ -114,5 +118,37 @@ func (c *Controller) RejectOrderPaymentController(ctx *gin.Context) {
 	}
 
 	span.AddEvent(`orders.ctl.payment.reject.success`)
+	base.Success(ctx, data)
+}
+
+func (c *Controller) AppealOrderPaymentController(ctx *gin.Context) {
+	span, _ := utils.LogSpanFromGin(ctx)
+	span.AddEvent(`orders.ctl.payment.appeal.start`)
+
+	orderID, ok := c.parseOrderID(ctx)
+	if !ok {
+		return
+	}
+
+	var req AppealOrderPaymentControllerRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		base.BadRequest(ctx, i18n.BadRequest, nil)
+		return
+	}
+
+	requesterID, hasRequester := auth.GetMemberID(ctx)
+	isAdmin := auth.GetIsAdmin(ctx)
+	if isAdmin || !hasRequester {
+		base.Forbidden(ctx, i18n.Forbidden, nil)
+		return
+	}
+
+	data, err := c.svc.AppealOrderPaymentService(ctx.Request.Context(), orderID, &AppealOrderPaymentServiceRequest{Reason: req.Reason}, requesterID)
+	if err != nil {
+		base.HandleError(ctx, err)
+		return
+	}
+
+	span.AddEvent(`orders.ctl.payment.appeal.success`)
 	base.Success(ctx, data)
 }

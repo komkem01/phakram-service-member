@@ -19,6 +19,10 @@ type ListOrderControllerRequest struct {
 	EndDate   int64  `form:"end_date"`
 }
 
+type ListMemberNotificationControllerRequest struct {
+	base.RequestPaginate
+}
+
 type CreateOrderControllerRequest struct {
 	MemberID           string `json:"member_id"`
 	PaymentID          string `json:"payment_id"`
@@ -30,9 +34,23 @@ type CreateOrderControllerRequest struct {
 	NetAmount          string `json:"net_amount"`
 }
 
-type UpdateOrderControllerRequest = CreateOrderControllerRequest
+type UpdateOrderControllerRequest struct {
+	PaymentID          string `json:"payment_id"`
+	AddressID          string `json:"address_id"`
+	Status             string `json:"status"`
+	ShippingTrackingNo string `json:"shipping_tracking_no"`
+	TotalAmount        string `json:"total_amount"`
+	DiscountAmount     string `json:"discount_amount"`
+	NetAmount          string `json:"net_amount"`
+	CancelReason       string `json:"cancel_reason"`
+	RefundReason       string `json:"refund_reason"`
+}
 
 type OrderURIRequest struct {
+	ID string `uri:"id"`
+}
+
+type NotificationURIRequest struct {
 	ID string `uri:"id"`
 }
 
@@ -82,6 +100,54 @@ func (c *Controller) ListOrderController(ctx *gin.Context) {
 
 	span.AddEvent(`orders.ctl.list.success`)
 	base.Paginate(ctx, data, page)
+}
+
+func (c *Controller) ListMemberNotificationController(ctx *gin.Context) {
+	span, _ := utils.LogSpanFromGin(ctx)
+	span.AddEvent(`orders.ctl.notifications.list.start`)
+
+	var req ListMemberNotificationControllerRequest
+	if err := ctx.ShouldBind(&req); err != nil {
+		base.BadRequest(ctx, i18n.BadRequest, nil)
+		return
+	}
+
+	requesterID, hasRequester := auth.GetMemberID(ctx)
+	isAdmin := auth.GetIsAdmin(ctx)
+	if !isAdmin && !hasRequester {
+		base.Forbidden(ctx, i18n.Forbidden, nil)
+		return
+	}
+
+	data, page, err := c.svc.ListMemberNotificationService(ctx.Request.Context(), &ListMemberNotificationServiceRequest{RequestPaginate: req.RequestPaginate}, requesterID, isAdmin)
+	if err != nil {
+		base.HandleError(ctx, err)
+		return
+	}
+
+	span.AddEvent(`orders.ctl.notifications.list.success`)
+	base.Paginate(ctx, data, page)
+}
+
+func (c *Controller) CountMemberUnreadNotificationsController(ctx *gin.Context) {
+	span, _ := utils.LogSpanFromGin(ctx)
+	span.AddEvent(`orders.ctl.notifications.count_unread.start`)
+
+	requesterID, hasRequester := auth.GetMemberID(ctx)
+	isAdmin := auth.GetIsAdmin(ctx)
+	if !isAdmin && !hasRequester {
+		base.Forbidden(ctx, i18n.Forbidden, nil)
+		return
+	}
+
+	data, err := c.svc.CountMemberUnreadNotificationsService(ctx.Request.Context(), requesterID, isAdmin)
+	if err != nil {
+		base.HandleError(ctx, err)
+		return
+	}
+
+	span.AddEvent(`orders.ctl.notifications.count_unread.success`)
+	base.Success(ctx, data)
 }
 
 func (c *Controller) InfoOrderController(ctx *gin.Context) {
@@ -242,6 +308,8 @@ func (c *Controller) UpdateOrderController(ctx *gin.Context) {
 		TotalAmount:        req.TotalAmount,
 		DiscountAmount:     req.DiscountAmount,
 		NetAmount:          req.NetAmount,
+		CancelReason:       req.CancelReason,
+		RefundReason:       req.RefundReason,
 	}, requesterID, isAdmin); err != nil {
 		base.HandleError(ctx, err)
 		return
@@ -276,6 +344,103 @@ func (c *Controller) DeleteOrderController(ctx *gin.Context) {
 	base.Success(ctx, nil)
 }
 
+func (c *Controller) ReorderController(ctx *gin.Context) {
+	span, _ := utils.LogSpanFromGin(ctx)
+	span.AddEvent(`orders.ctl.reorder.start`)
+
+	orderID, ok := c.parseOrderID(ctx)
+	if !ok {
+		return
+	}
+
+	requesterID, hasRequester := auth.GetMemberID(ctx)
+	isAdmin := auth.GetIsAdmin(ctx)
+	if !isAdmin && !hasRequester {
+		base.Forbidden(ctx, i18n.Forbidden, nil)
+		return
+	}
+
+	data, err := c.svc.ReorderService(ctx.Request.Context(), orderID, requesterID, isAdmin)
+	if err != nil {
+		base.HandleError(ctx, err)
+		return
+	}
+
+	span.AddEvent(`orders.ctl.reorder.success`)
+	base.Success(ctx, data)
+}
+
+func (c *Controller) MarkMemberNotificationReadController(ctx *gin.Context) {
+	span, _ := utils.LogSpanFromGin(ctx)
+	span.AddEvent(`orders.ctl.notifications.mark_read.start`)
+
+	notificationID, ok := c.parseNotificationID(ctx)
+	if !ok {
+		return
+	}
+
+	requesterID, hasRequester := auth.GetMemberID(ctx)
+	isAdmin := auth.GetIsAdmin(ctx)
+	if !isAdmin && !hasRequester {
+		base.Forbidden(ctx, i18n.Forbidden, nil)
+		return
+	}
+
+	if err := c.svc.MarkMemberNotificationReadService(ctx.Request.Context(), notificationID, requesterID, isAdmin, true); err != nil {
+		base.HandleError(ctx, err)
+		return
+	}
+
+	span.AddEvent(`orders.ctl.notifications.mark_read.success`)
+	base.Success(ctx, nil)
+}
+
+func (c *Controller) MarkMemberNotificationUnreadController(ctx *gin.Context) {
+	span, _ := utils.LogSpanFromGin(ctx)
+	span.AddEvent(`orders.ctl.notifications.mark_unread.start`)
+
+	notificationID, ok := c.parseNotificationID(ctx)
+	if !ok {
+		return
+	}
+
+	requesterID, hasRequester := auth.GetMemberID(ctx)
+	isAdmin := auth.GetIsAdmin(ctx)
+	if !isAdmin && !hasRequester {
+		base.Forbidden(ctx, i18n.Forbidden, nil)
+		return
+	}
+
+	if err := c.svc.MarkMemberNotificationReadService(ctx.Request.Context(), notificationID, requesterID, isAdmin, false); err != nil {
+		base.HandleError(ctx, err)
+		return
+	}
+
+	span.AddEvent(`orders.ctl.notifications.mark_unread.success`)
+	base.Success(ctx, nil)
+}
+
+func (c *Controller) MarkAllMemberNotificationsReadController(ctx *gin.Context) {
+	span, _ := utils.LogSpanFromGin(ctx)
+	span.AddEvent(`orders.ctl.notifications.mark_all.start`)
+
+	requesterID, hasRequester := auth.GetMemberID(ctx)
+	isAdmin := auth.GetIsAdmin(ctx)
+	if !isAdmin && !hasRequester {
+		base.Forbidden(ctx, i18n.Forbidden, nil)
+		return
+	}
+
+	data, err := c.svc.MarkAllMemberNotificationsReadService(ctx.Request.Context(), requesterID, isAdmin)
+	if err != nil {
+		base.HandleError(ctx, err)
+		return
+	}
+
+	span.AddEvent(`orders.ctl.notifications.mark_all.success`)
+	base.Success(ctx, data)
+}
+
 func (c *Controller) parseOrderID(ctx *gin.Context) (uuid.UUID, bool) {
 	var uri OrderURIRequest
 	if err := ctx.ShouldBindUri(&uri); err != nil {
@@ -290,4 +455,20 @@ func (c *Controller) parseOrderID(ctx *gin.Context) (uuid.UUID, bool) {
 	}
 
 	return orderID, true
+}
+
+func (c *Controller) parseNotificationID(ctx *gin.Context) (uuid.UUID, bool) {
+	var uri NotificationURIRequest
+	if err := ctx.ShouldBindUri(&uri); err != nil {
+		base.BadRequest(ctx, i18n.BadRequest, nil)
+		return uuid.Nil, false
+	}
+
+	notificationID, err := uuid.Parse(uri.ID)
+	if err != nil {
+		base.BadRequest(ctx, i18n.BadRequest, nil)
+		return uuid.Nil, false
+	}
+
+	return notificationID, true
 }

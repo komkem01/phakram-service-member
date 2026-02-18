@@ -60,6 +60,24 @@ var errorMappings = map[string]ResponseFunction{
 	"payment was rejected waiting for resubmission": func(ctx *gin.Context, _ string, _ any, params ...map[string]string) error {
 		return ValidateFailed(ctx, "ไม่สามารถเปลี่ยนสถานะได้ กรุณารอลูกค้ายืนยันการชำระเงินใหม่", nil, params...)
 	},
+	"cannot cancel order after payment submission": func(ctx *gin.Context, _ string, _ any, params ...map[string]string) error {
+		return ValidateFailed(ctx, "ยืนยันการชำระเงินแล้ว ไม่สามารถยกเลิกตรงได้ กรุณาติดต่อแอดมินเพื่อขอคืนเงิน", nil, params...)
+	},
+	"refund request requires payment submission": func(ctx *gin.Context, _ string, _ any, params ...map[string]string) error {
+		return ValidateFailed(ctx, "การขอคืนเงินทำได้หลังยืนยันการชำระเงินแล้วเท่านั้น", nil, params...)
+	},
+	"refund reason is required": func(ctx *gin.Context, _ string, _ any, params ...map[string]string) error {
+		return ValidateFailed(ctx, "กรุณาระบุเหตุผลที่ต้องการขอคืนเงิน", nil, params...)
+	},
+	"refund rejection reason is required": func(ctx *gin.Context, _ string, _ any, params ...map[string]string) error {
+		return ValidateFailed(ctx, "กรุณาระบุเหตุผลที่ปฏิเสธคำขอคืนเงิน", nil, params...)
+	},
+	"payment appeal reason is required": func(ctx *gin.Context, _ string, _ any, params ...map[string]string) error {
+		return ValidateFailed(ctx, "กรุณาระบุเหตุผลการอุทธรณ์การชำระเงิน", nil, params...)
+	},
+	"payment appeal is allowed only after rejection": func(ctx *gin.Context, _ string, _ any, params ...map[string]string) error {
+		return ValidateFailed(ctx, "อุทธรณ์ได้เฉพาะรายการที่ถูกปฏิเสธการชำระเงินแล้ว", nil, params...)
+	},
 	"payment is in use": func(ctx *gin.Context, _ string, _ any, params ...map[string]string) error {
 		return ValidateFailed(ctx, "ไม่สามารถลบได้ เนื่องจาก payment ถูกอ้างอิงอยู่", nil, params...)
 	},
@@ -74,6 +92,21 @@ var errorMappings = map[string]ResponseFunction{
 	},
 	"order item not found": func(ctx *gin.Context, _ string, _ any, params ...map[string]string) error {
 		return ValidateFailed(ctx, "ไม่พบรายการสินค้าในออเดอร์", nil, params...)
+	},
+	"notification not found": func(ctx *gin.Context, _ string, _ any, params ...map[string]string) error {
+		return ValidateFailed(ctx, "ไม่พบการแจ้งเตือน", nil, params...)
+	},
+	"order has no items": func(ctx *gin.Context, _ string, _ any, params ...map[string]string) error {
+		return ValidateFailed(ctx, "ออเดอร์นี้ไม่มีรายการสินค้าให้สั่งซ้ำ", nil, params...)
+	},
+	"reorder is allowed only for completed orders": func(ctx *gin.Context, _ string, _ any, params ...map[string]string) error {
+		return ValidateFailed(ctx, "สั่งซื้อซ้ำได้เฉพาะคำสั่งซื้อที่สำเร็จแล้ว", nil, params...)
+	},
+	"insufficient product stock": func(ctx *gin.Context, _ string, _ any, params ...map[string]string) error {
+		return ValidateFailed(ctx, "สต็อกสินค้าไม่เพียงพอสำหรับการสั่งซ้ำ", nil, params...)
+	},
+	"product is inactive": func(ctx *gin.Context, _ string, _ any, params ...map[string]string) error {
+		return ValidateFailed(ctx, "มีสินค้าในออเดอร์ที่ปิดการขายแล้ว", nil, params...)
 	},
 	"product stock not found": func(ctx *gin.Context, _ string, _ any, params ...map[string]string) error {
 		return ValidateFailed(ctx, "ไม่พบสต็อกสินค้า", nil, params...)

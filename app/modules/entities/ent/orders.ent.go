@@ -11,11 +11,12 @@ import (
 type StatusTypeEnum string
 
 const (
-	StatusTypePending   StatusTypeEnum = "pending"
-	StatusTypePaid      StatusTypeEnum = "paid"
-	StatusTypeShipping  StatusTypeEnum = "shipping"
-	StatusTypeCompleted StatusTypeEnum = "completed"
-	StatusTypeCancelled StatusTypeEnum = "cancelled"
+	StatusTypePending         StatusTypeEnum = "pending"
+	StatusTypePaid            StatusTypeEnum = "paid"
+	StatusTypeRefundRequested StatusTypeEnum = "refund_requested"
+	StatusTypeShipping        StatusTypeEnum = "shipping"
+	StatusTypeCompleted       StatusTypeEnum = "completed"
+	StatusTypeCancelled       StatusTypeEnum = "cancelled"
 )
 
 type OrderEntity struct {
@@ -35,5 +36,10 @@ type OrderEntity struct {
 	PaymentSubmitted       bool            `bun:"-" json:"payment_submitted"`
 	PaymentRejected        bool            `bun:"-" json:"payment_rejected"`
 	PaymentRejectionReason string          `bun:"-" json:"payment_rejection_reason,omitempty"`
+	PaymentAppealReason    string          `bun:"-" json:"payment_appeal_reason,omitempty"`
+	RefundRejectionReason  string          `bun:"-" json:"refund_rejection_reason,omitempty"`
+	CancellationReason     string          `bun:"-" json:"cancellation_reason,omitempty"`
 	ShippingTrackingNo     string          `bun:"-" json:"shipping_tracking_no,omitempty"`
+	StatusSummary          string          `bun:"-" json:"status_summary,omitempty"`
+	StatusNextStep         string          `bun:"-" json:"status_next_step,omitempty"`
 }
