@@ -87,6 +87,34 @@ func (c *Controller) GetInfoController(ctx *gin.Context) {
 	base.Success(ctx, res)
 }
 
+func (c *Controller) LogoutController(ctx *gin.Context) {
+	span, _ := utils.LogSpanFromGin(ctx)
+	span.AddEvent("auth.ctl.logout.start")
+
+	memberID, ok := GetMemberID(ctx)
+	if !ok {
+		base.Unauthorized(ctx, i18n.Unauthorized, nil)
+		return
+	}
+
+	sessionID, ok := GetSessionID(ctx)
+	if !ok {
+		base.Unauthorized(ctx, i18n.Unauthorized, nil)
+		return
+	}
+
+	if err := c.svc.RevokeSessionService(ctx.Request.Context(), &RevokeSessionServiceRequest{
+		MemberID:  memberID,
+		SessionID: sessionID,
+	}); err != nil {
+		base.HandleError(ctx, err)
+		return
+	}
+
+	span.AddEvent("auth.ctl.logout.success")
+	base.Success(ctx, nil)
+}
+
 func (c *Controller) ActAsMemberController(ctx *gin.Context) {
 	span, _ := utils.LogSpanFromGin(ctx)
 	span.AddEvent("auth.ctl.act_as.start")

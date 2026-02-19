@@ -1089,7 +1089,9 @@ func allowedNextStatuses(status ent.StatusTypeEnum) []ent.StatusTypeEnum {
 	case ent.StatusTypePaid:
 		return []ent.StatusTypeEnum{ent.StatusTypeShipping, ent.StatusTypeRefundRequested}
 	case ent.StatusTypeShipping:
-		return []ent.StatusTypeEnum{ent.StatusTypeCompleted}
+		return []ent.StatusTypeEnum{ent.StatusTypeCompleted, ent.StatusTypeRefundRequested}
+	case ent.StatusTypeCompleted:
+		return []ent.StatusTypeEnum{ent.StatusTypeRefundRequested}
 	default:
 		return []ent.StatusTypeEnum{}
 	}
@@ -1317,6 +1319,33 @@ func (s *Service) ConfirmOrderPaymentService(ctx context.Context, orderID uuid.U
 		uploadedBy = order.MemberID
 	}
 
+	slipFilePath := ""
+	slipFileName := strings.TrimSpace(req.SlipFileName)
+	slipFileType := strings.TrimSpace(req.SlipFileType)
+	slipFileSize := req.SlipFileSize
+
+	if slipAttached {
+		if s.supabase == nil || !s.supabase.enabledForPrivate() {
+			return nil, errors.New("supabase storage is not configured")
+		}
+
+		uploadedSlip, err := s.supabase.UploadPaymentSlip(ctx, order.ID, order.PaymentID, slipFileName, strings.TrimSpace(req.SlipImageBase64))
+		if err != nil {
+			return nil, err
+		}
+
+		slipFilePath = uploadedSlip.Path
+		if slipFileName == "" {
+			slipFileName = uploadedSlip.FileName
+		}
+		if slipFileType == "" {
+			slipFileType = uploadedSlip.MIMEType
+		}
+		if slipFileSize <= 0 {
+			slipFileSize = uploadedSlip.Size
+		}
+	}
+
 	if err := s.bunDB.DB().RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
 		now := time.Now()
 
@@ -1354,11 +1383,11 @@ func (s *Service) ConfirmOrderPaymentService(ctx context.Context, orderID uuid.U
 		}
 
 		if slipAttached {
-			fileName := strings.TrimSpace(req.SlipFileName)
+			fileName := strings.TrimSpace(slipFileName)
 			if fileName == "" {
 				fileName = fmt.Sprintf("payment-slip-%s", order.ID.String())
 			}
-			fileType := strings.TrimSpace(req.SlipFileType)
+			fileType := strings.TrimSpace(slipFileType)
 			if fileType == "" {
 				fileType = "image/*"
 			}
@@ -1368,12 +1397,12 @@ func (s *Service) ConfirmOrderPaymentService(ctx context.Context, orderID uuid.U
 				ID:            storageID,
 				RefID:         order.PaymentID,
 				FileName:      fileName,
-				FilePath:      strings.TrimSpace(req.SlipImageBase64),
-				FileSize:      req.SlipFileSize,
+				FilePath:      slipFilePath,
+				FileSize:      slipFileSize,
 				FileType:      fileType,
 				IsActive:      true,
 				RelatedEntity: ent.RelatedEntityPaymentFile,
-				UploadedBy:    uploadedBy,
+				UploadedBy:    &uploadedBy,
 				CreatedAt:     now,
 				UpdatedAt:     now,
 			}

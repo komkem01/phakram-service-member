@@ -32,6 +32,11 @@ type RefreshTokenServiceRequest struct {
 	RefreshToken string
 }
 
+type RevokeSessionServiceRequest struct {
+	MemberID  uuid.UUID
+	SessionID uuid.UUID
+}
+
 type ActAsMemberServiceRequest struct {
 	ActorMemberID  uuid.UUID
 	TargetMemberID uuid.UUID
@@ -90,7 +95,7 @@ func (s *Service) LoginService(ctx context.Context, req *LoginServiceRequest) (*
 		return nil, err
 	}
 
-	return s.buildTokenResponse(data.MemberID, data.Email, data.Role)
+	return s.buildTokenResponse(ctx, data.MemberID, data.Email, data.Role)
 }
 
 func (s *Service) RefreshTokenService(ctx context.Context, req *RefreshTokenServiceRequest) (*TokenServiceResponse, error) {
@@ -102,8 +107,29 @@ func (s *Service) RefreshTokenService(ctx context.Context, req *RefreshTokenServ
 		return nil, errors.New("invalid token")
 	}
 
+	sessionID, err := uuid.Parse(claims.SessionID)
+	if err != nil {
+		return nil, errors.New("invalid token")
+	}
+
 	memberID, err := uuid.Parse(claims.Sub)
 	if err != nil {
+		return nil, errors.New("invalid token")
+	}
+
+	session, err := s.getAuthSessionByID(ctx, sessionID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, errors.New("invalid token")
+		}
+		return nil, err
+	}
+
+	now := time.Now().UTC()
+	if session.MemberID != memberID || session.RevokedAt != nil || now.After(session.RefreshExpiresAt) || s.isSessionExpiredByIdle(session.LastActivity, now) {
+		return nil, errors.New("invalid token")
+	}
+	if session.RefreshTokenHash != hashTokenValue(req.RefreshToken) {
 		return nil, errors.New("invalid token")
 	}
 
@@ -119,7 +145,28 @@ func (s *Service) RefreshTokenService(ctx context.Context, req *RefreshTokenServ
 		return nil, err
 	}
 
-	return s.buildTokenResponse(data.MemberID, data.Email, data.Role)
+	actorSub := ""
+	if session.ActorMemberID != nil {
+		actorSub = session.ActorMemberID.String()
+	}
+
+	res, err := s.buildTokenResponseWithSession(data.MemberID, data.Email, data.Role, session.ID, actorSub, session.ActorIsAdmin, session.IsActingAs)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := s.rotateRefreshSession(ctx, session.ID, res.RefreshToken, res.RefreshExpiresAt); err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}
+
+func (s *Service) RevokeSessionService(ctx context.Context, req *RevokeSessionServiceRequest) error {
+	_, span, _ := utils.NewLogSpan(ctx, s.tracer, "RevokeSessionService")
+	defer span.End()
+
+	return s.revokeSession(ctx, req.SessionID, req.MemberID)
 }
 
 func (s *Service) touchMemberLastLogin(ctx context.Context, memberID uuid.UUID, detail string) error {
@@ -217,7 +264,7 @@ func (s *Service) ActAsMemberService(ctx context.Context, req *ActAsMemberServic
 		return nil, err
 	}
 
-	return s.buildTokenResponseWithActor(targetData.MemberID, targetData.Email, targetData.Role, actorData.MemberID.String(), true, true)
+	return s.buildTokenResponseWithActor(ctx, targetData.MemberID, targetData.Email, targetData.Role, actorData.MemberID.String(), true, true)
 }
 
 func (s *Service) ExitActAsService(ctx context.Context, actorMemberID uuid.UUID) (*TokenServiceResponse, error) {
@@ -235,22 +282,46 @@ func (s *Service) ExitActAsService(ctx context.Context, actorMemberID uuid.UUID)
 		return nil, errors.New("forbidden")
 	}
 
-	return s.buildTokenResponse(actorData.MemberID, actorData.Email, actorData.Role)
+	return s.buildTokenResponse(ctx, actorData.MemberID, actorData.Email, actorData.Role)
 }
 
-func (s *Service) buildTokenResponse(memberID uuid.UUID, email string, role ent.RoleTypeEnum) (*TokenServiceResponse, error) {
-	return s.buildTokenResponseWithActor(memberID, email, role, "", false, false)
+func (s *Service) buildTokenResponse(ctx context.Context, memberID uuid.UUID, email string, role ent.RoleTypeEnum) (*TokenServiceResponse, error) {
+	return s.buildTokenResponseWithActor(ctx, memberID, email, role, "", false, false)
 }
 
-func (s *Service) buildTokenResponseWithActor(memberID uuid.UUID, email string, role ent.RoleTypeEnum, actorSub string, actorIsAdmin bool, actingAs bool) (*TokenServiceResponse, error) {
-	isAdmin := role == ent.RoleTypeAdmin
+func (s *Service) buildTokenResponseWithActor(ctx context.Context, memberID uuid.UUID, email string, role ent.RoleTypeEnum, actorSub string, actorIsAdmin bool, actingAs bool) (*TokenServiceResponse, error) {
+	sessionID := uuid.New()
 
-	accessToken, accessExp, err := s.generateToken(memberID, email, string(role), isAdmin, actorSub, actorIsAdmin, actingAs, "access", accessTokenTTL)
+	res, err := s.buildTokenResponseWithSession(memberID, email, role, sessionID, actorSub, actorIsAdmin, actingAs)
 	if err != nil {
 		return nil, err
 	}
 
-	refreshToken, refreshExp, err := s.generateToken(memberID, email, string(role), isAdmin, actorSub, actorIsAdmin, actingAs, "refresh", refreshTokenTTL)
+	var actorMemberID *uuid.UUID
+	if actorSub != "" {
+		parsedActorMemberID, parseErr := uuid.Parse(actorSub)
+		if parseErr != nil {
+			return nil, parseErr
+		}
+		actorMemberID = &parsedActorMemberID
+	}
+
+	if _, err := s.createAuthSession(ctx, sessionID, memberID, actorMemberID, actorIsAdmin, actingAs, res.RefreshToken, res.RefreshExpiresAt); err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}
+
+func (s *Service) buildTokenResponseWithSession(memberID uuid.UUID, email string, role ent.RoleTypeEnum, sessionID uuid.UUID, actorSub string, actorIsAdmin bool, actingAs bool) (*TokenServiceResponse, error) {
+	isAdmin := role == ent.RoleTypeAdmin
+
+	accessToken, accessExp, err := s.generateToken(memberID, email, string(role), isAdmin, sessionID, actorSub, actorIsAdmin, actingAs, "access", accessTokenTTL)
+	if err != nil {
+		return nil, err
+	}
+
+	refreshToken, refreshExp, err := s.generateToken(memberID, email, string(role), isAdmin, sessionID, actorSub, actorIsAdmin, actingAs, "refresh", refreshTokenTTL)
 	if err != nil {
 		return nil, err
 	}

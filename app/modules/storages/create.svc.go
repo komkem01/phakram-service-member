@@ -18,7 +18,7 @@ type CreateStorageServiceRequest struct {
 	FileSize      int64
 	FileType      string
 	RelatedEntity string
-	UploadedBy    uuid.UUID
+	UploadedBy    *uuid.UUID
 	IsActive      *bool
 }
 

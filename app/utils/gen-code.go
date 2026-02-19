@@ -1,16 +1,12 @@
 package utils
 
 import (
-	"context"
 	"crypto/rand"
-	"database/sql"
-	"errors"
 	"fmt"
 	"math/big"
-	"strconv"
 	"strings"
 
-	"github.com/uptrace/bun"
+	"github.com/google/uuid"
 )
 
 func NextAlphaCode(last string) string {
@@ -37,40 +33,24 @@ func NextAlphaCode(last string) string {
 }
 
 const (
-	MemberNoPrefix  = "PKK-"
-	MemberNoDigits  = 6
-	ProductNoPrefix = "PD-"
-	ProductNoDigits = 6
-	OrderNoPrefix   = "ORD-"
-	OrderNoDigits   = 6
+	MemberNoPrefixMember = "MEM-"
+	MemberNoPrefixAdmin  = "ADM-"
+	ProductNoPrefix      = "PD-"
+	ProductNoDigits      = 6
+	OrderNoPrefix        = "ORD-"
+	OrderNoDigits        = 6
 )
 
-func GenerateMemberNo(ctx context.Context, db bun.IDB) (string, error) {
-	var last struct {
-		MemberNo string `bun:"member_no"`
+func GenerateMemberNo(memberID uuid.UUID, role string) string {
+	normalized := strings.ToUpper(strings.ReplaceAll(memberID.String(), "-", ""))
+	prefix := MemberNoPrefixMember
+	if strings.EqualFold(strings.TrimSpace(role), "admin") {
+		prefix = MemberNoPrefixAdmin
 	}
-
-	err := db.NewSelect().
-		TableExpr("members").
-		Column("member_no").
-		Where("member_no LIKE ?", MemberNoPrefix+"%").
-		OrderExpr("member_no DESC").
-		Limit(1).
-		Scan(ctx, &last)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return fmt.Sprintf("%s%0*d", MemberNoPrefix, MemberNoDigits, 1), nil
-		}
-		return "", err
+	if len(normalized) <= 8 {
+		return fmt.Sprintf("%s%s", prefix, normalized)
 	}
-
-	seqStr := strings.TrimPrefix(last.MemberNo, MemberNoPrefix)
-	seq, err := strconv.Atoi(seqStr)
-	if err != nil || seq < 0 {
-		return fmt.Sprintf("%s%0*d", MemberNoPrefix, MemberNoDigits, 1), nil
-	}
-
-	return fmt.Sprintf("%s%0*d", MemberNoPrefix, MemberNoDigits, seq+1), nil
+	return fmt.Sprintf("%s%s", prefix, normalized[len(normalized)-8:])
 }
 
 func GenerateProductNo() (string, error) {

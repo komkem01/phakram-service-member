@@ -11,6 +11,7 @@ const (
 	ContextMemberIDKey      = "member_id"
 	ContextRoleKey          = "role"
 	ContextIsAdminKey       = "is_admin"
+	ContextSessionIDKey     = "session_id"
 	ContextActorMemberIDKey = "actor_member_id"
 	ContextActorIsAdminKey  = "actor_is_admin"
 	ContextActingAsKey      = "is_acting_as"
@@ -107,6 +108,30 @@ func GetActorIsAdmin(ctx *gin.Context) bool {
 	}
 
 	return isAdmin
+}
+
+func GetSessionID(ctx *gin.Context) (uuid.UUID, bool) {
+	if ctx == nil {
+		return uuid.Nil, false
+	}
+
+	value, ok := ctx.Get(ContextSessionIDKey)
+	if !ok {
+		return uuid.Nil, false
+	}
+
+	switch v := value.(type) {
+	case uuid.UUID:
+		return v, true
+	case string:
+		sessionID, err := uuid.Parse(v)
+		if err != nil {
+			return uuid.Nil, false
+		}
+		return sessionID, true
+	default:
+		return uuid.Nil, false
+	}
 }
 
 func IsActingAs(ctx *gin.Context) bool {

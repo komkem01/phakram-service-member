@@ -38,9 +38,38 @@ func (c *Controller) AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		ctx.Set(ContextMemberIDKey, claims.Sub)
+		memberID, err := uuid.Parse(claims.Sub)
+		if err != nil {
+			base.Unauthorized(ctx, i18n.Unauthorized, nil)
+			ctx.Abort()
+			return
+		}
+
+		sessionID, err := uuid.Parse(claims.SessionID)
+		if err != nil {
+			base.Unauthorized(ctx, i18n.Unauthorized, nil)
+			ctx.Abort()
+			return
+		}
+
+		if _, err := c.svc.validateAccessSession(ctx.Request.Context(), sessionID, memberID); err != nil {
+			log.Errf(`internal: %s`, err)
+			base.Unauthorized(ctx, i18n.Unauthorized, nil)
+			ctx.Abort()
+			return
+		}
+
+		if err := c.svc.touchAuthSessionActivity(ctx.Request.Context(), sessionID); err != nil {
+			log.Errf(`internal: %s`, err)
+			base.Unauthorized(ctx, i18n.Unauthorized, nil)
+			ctx.Abort()
+			return
+		}
+
+		ctx.Set(ContextMemberIDKey, memberID)
 		ctx.Set(ContextRoleKey, claims.Role)
 		ctx.Set(ContextIsAdminKey, claims.IsAdmin)
+		ctx.Set(ContextSessionIDKey, sessionID)
 
 		actorSub := claims.Sub
 		actorIsAdmin := claims.IsAdmin
@@ -53,9 +82,9 @@ func (c *Controller) AuthMiddleware() gin.HandlerFunc {
 		ctx.Set(ContextActorIsAdminKey, actorIsAdmin)
 		ctx.Set(ContextActingAsKey, claims.ActingAs)
 
-		targetID, targetErr := uuid.Parse(claims.Sub)
+		targetID := memberID
 		actorID, actorErr := uuid.Parse(actorSub)
-		if targetErr == nil && actorErr == nil {
+		if actorErr == nil {
 			ctx.Request = ctx.Request.WithContext(WithRequestMeta(
 				ctx.Request.Context(),
 				ctx.FullPath(),

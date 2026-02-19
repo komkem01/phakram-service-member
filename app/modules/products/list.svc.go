@@ -22,6 +22,7 @@ type ListProductServiceResponses struct {
 	NameEn     string          `json:"name_en"`
 	ProductNo  string          `json:"product_no"`
 	Price      decimal.Decimal `json:"price"`
+	ImageURL   string          `json:"image_url,omitempty"`
 	IsActive   bool            `json:"is_active"`
 	CreatedAt  string          `json:"created_at"`
 	UpdatedAt  string          `json:"updated_at"`
@@ -38,6 +39,21 @@ func (s *Service) ListService(ctx context.Context, req *ListProductServiceReques
 		log.With(slog.Any(`body`, req)).Errf(`internal: %s`, err)
 		return nil, nil, err
 	}
+
+	productIDs := make([]uuid.UUID, 0, len(data))
+	for _, item := range data {
+		if item == nil {
+			continue
+		}
+		productIDs = append(productIDs, item.ID)
+	}
+
+	imageMap, err := s.loadProductPrimaryImageMap(ctx, productIDs)
+	if err != nil {
+		log.With(slog.Any(`body`, req)).Errf(`internal: %s`, err)
+		return nil, nil, err
+	}
+
 	var response []*ListProductServiceResponses
 	for _, item := range data {
 		temp := &ListProductServiceResponses{
@@ -47,6 +63,7 @@ func (s *Service) ListService(ctx context.Context, req *ListProductServiceReques
 			NameEn:     item.NameEn,
 			ProductNo:  item.ProductNo,
 			Price:      item.Price,
+			ImageURL:   imageMap[item.ID],
 			IsActive:   item.IsActive,
 			CreatedAt:  item.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 			UpdatedAt:  item.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),

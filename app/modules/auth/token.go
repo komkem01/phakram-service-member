@@ -19,6 +19,8 @@ type tokenClaims struct {
 	Email        string `json:"email"`
 	Role         string `json:"role"`
 	IsAdmin      bool   `json:"is_admin"`
+	SessionID    string `json:"sid"`
+	TokenID      string `json:"jti"`
 	ActorSub     string `json:"actor_sub,omitempty"`
 	ActorIsAdmin bool   `json:"actor_is_admin,omitempty"`
 	ActingAs     bool   `json:"acting_as,omitempty"`
@@ -32,10 +34,11 @@ type tokenHeader struct {
 	Typ string `json:"typ"`
 }
 
-const accessTokenTTL = 24 * time.Hour
+const accessTokenTTL = 15 * time.Minute
+const idleSessionTTL = 30 * time.Minute
 const refreshTokenTTL = 7 * 24 * time.Hour
 
-func (s *Service) generateToken(memberID uuid.UUID, email string, role string, isAdmin bool, actorSub string, actorIsAdmin bool, actingAs bool, tokenType string, ttl time.Duration) (string, int64, error) {
+func (s *Service) generateToken(memberID uuid.UUID, email string, role string, isAdmin bool, sessionID uuid.UUID, actorSub string, actorIsAdmin bool, actingAs bool, tokenType string, ttl time.Duration) (string, int64, error) {
 	if s.secret == "" {
 		return "", 0, errors.New("missing token secret")
 	}
@@ -49,6 +52,8 @@ func (s *Service) generateToken(memberID uuid.UUID, email string, role string, i
 		Email:        email,
 		Role:         role,
 		IsAdmin:      isAdmin,
+		SessionID:    sessionID.String(),
+		TokenID:      uuid.NewString(),
 		ActorSub:     actorSub,
 		ActorIsAdmin: actorIsAdmin,
 		ActingAs:     actingAs,

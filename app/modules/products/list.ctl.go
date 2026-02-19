@@ -22,6 +22,7 @@ type ListProductControllerResponses struct {
 	NameEn     string          `json:"name_en"`
 	ProductNo  string          `json:"product_no"`
 	Price      decimal.Decimal `json:"price"`
+	ImageURL   string          `json:"image_url,omitempty"`
 	IsActive   bool            `json:"is_active"`
 	CreatedAt  string          `json:"created_at"`
 	UpdatedAt  string          `json:"updated_at"`

@@ -11,6 +11,9 @@ import (
 var _ entitiesinf.StorageEntity = (*Service)(nil)
 
 func (s *Service) UploadStorage(ctx context.Context, storage *ent.StorageEntity) error {
+	if storage != nil && storage.UploadedBy != nil && *storage.UploadedBy == uuid.Nil {
+		storage.UploadedBy = nil
+	}
 	_, err := s.db.NewInsert().
 		Model(storage).
 		Exec(ctx)

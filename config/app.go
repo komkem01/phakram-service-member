@@ -13,6 +13,7 @@ import (
 // Config is a struct that contains all the configuration of the application.
 type Config struct {
 	Database Database
+	Supabase SupabaseConfig
 
 	AppName     string
 	AppKey      string
@@ -38,12 +39,20 @@ type Config struct {
 	ExampleTwo exampletwo.Config
 }
 
+type SupabaseConfig struct {
+	URL            string
+	ServiceRoleKey string
+	PublicBucket   string
+	PrivateBucket  string
+}
+
 var App = Config{
 	Specs: specs.Config{
 		Version: "v1",
 	},
 	Database: database,
 	Kafka:    kafkaConf,
+	Supabase: SupabaseConfig{},
 
 	AppName: "go_app",
 	Port:    8081,

@@ -35,10 +35,14 @@ func (c *Controller) CreateStorageController(ctx *gin.Context) {
 		base.BadRequest(ctx, i18n.BadRequest, nil)
 		return
 	}
-	uploadedBy, err := uuid.Parse(req.UploadedBy)
-	if err != nil {
-		base.BadRequest(ctx, i18n.BadRequest, nil)
-		return
+	var uploadedBy *uuid.UUID
+	if req.UploadedBy != "" {
+		parsedUploadedBy, err := uuid.Parse(req.UploadedBy)
+		if err != nil {
+			base.BadRequest(ctx, i18n.BadRequest, nil)
+			return
+		}
+		uploadedBy = &parsedUploadedBy
 	}
 
 	if err := c.svc.CreateService(ctx.Request.Context(), &CreateStorageServiceRequest{

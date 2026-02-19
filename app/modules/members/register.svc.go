@@ -123,11 +123,7 @@ func (s *Service) createRegisterService(ctx context.Context, req *RegisterServic
 	}
 
 	err = s.bunDB.DB().RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
-		memberNo, err := utils.GenerateMemberNo(ctx, tx)
-		if err != nil {
-			return err
-		}
-		member.MemberNo = memberNo
+		member.MemberNo = utils.GenerateMemberNo(memberID, string(role))
 
 		if _, err := tx.NewInsert().Model(member).Exec(ctx); err != nil {
 			return err

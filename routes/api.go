@@ -107,7 +107,10 @@ func apiSystem(r *gin.RouterGroup, mod *modules.Modules) {
 		{
 			products.GET("/", mod.Products.Ctl.ProductsList)
 			products.GET("/:id", mod.Products.Ctl.ProductsInfo)
+			products.GET("/:id/images", mod.Products.Ctl.ListProductImagesController)
 			products.POST("/", mod.Products.Ctl.CreateProductController)
+			products.POST("/:id/images", mod.Products.Ctl.UploadProductImageController)
+			products.DELETE("/:id/images/:image_id", mod.Products.Ctl.DeleteProductImageController)
 			products.PATCH("/:id", mod.Products.Ctl.ProductsUpdate)
 			products.DELETE("/:id", mod.Products.Ctl.ProductsDelete)
 
@@ -134,6 +137,15 @@ func apiSystem(r *gin.RouterGroup, mod *modules.Modules) {
 			payments.POST("/", mod.Payments.Ctl.CreatePaymentController)
 			payments.PATCH("/:id", mod.Payments.Ctl.PaymentsUpdate)
 			payments.DELETE("/:id", mod.Payments.Ctl.PaymentsDelete)
+		}
+
+		systemBankAccounts := system.Group("/system_bank_accounts")
+		{
+			systemBankAccounts.GET("/", mod.SystemBankAccounts.Ctl.ListController)
+			systemBankAccounts.GET("/:id", mod.SystemBankAccounts.Ctl.InfoController)
+			systemBankAccounts.POST("/", mod.SystemBankAccounts.Ctl.CreateController)
+			systemBankAccounts.PATCH("/:id", mod.SystemBankAccounts.Ctl.UpdateController)
+			systemBankAccounts.DELETE("/:id", mod.SystemBankAccounts.Ctl.DeleteController)
 		}
 	}
 }
@@ -172,6 +184,7 @@ func apiAuth(r *gin.RouterGroup, mod *modules.Modules) {
 	auth := r.Group("/auth", mod.Auth.Ctl.AuthMiddleware())
 	{
 		auth.GET("/me", mod.Auth.Ctl.GetInfoController)
+		auth.POST("/logout", mod.Auth.Ctl.LogoutController)
 		auth.GET("/notifications", mod.Orders.Ctl.ListMemberNotificationController)
 		auth.GET("/notifications/unread-count", mod.Orders.Ctl.CountMemberUnreadNotificationsController)
 		auth.PATCH("/notifications/read-all", mod.Orders.Ctl.MarkAllMemberNotificationsReadController)

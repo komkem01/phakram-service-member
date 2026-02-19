@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"math/rand"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strconv"
 	"strings"
@@ -22,8 +23,9 @@ type Service[T any] struct {
 }
 
 func newService[T any](dConf *T) *Service[T] {
-	godotenv.Load()
+	loadDotEnv()
 	conf := configWithDefault(dConf)
+	applySupabaseAliases(conf)
 	confRef := reflect.ValueOf(conf)
 	appName := confRef.Elem().FieldByName("AppName").String()
 	debug := confRef.Elem().FieldByName("Debug").Bool()
@@ -39,6 +41,97 @@ func newService[T any](dConf *T) *Service[T] {
 		debug:       debug,
 		conf:        conf,
 	}
+}
+
+func loadDotEnv() {
+	paths := []string{
+		".env",
+		"phakram-service-member/.env",
+		"../phakram-service-member/.env",
+	}
+
+	for _, path := range paths {
+		if _, err := os.Stat(path); err == nil {
+			_ = godotenv.Load(path)
+			return
+		}
+	}
+
+	if cwd, err := os.Getwd(); err == nil {
+		for _, candidate := range discoverDotEnvCandidates(cwd) {
+			if _, statErr := os.Stat(candidate); statErr == nil {
+				_ = godotenv.Load(candidate)
+				return
+			}
+		}
+	}
+
+	_ = godotenv.Load()
+}
+
+func discoverDotEnvCandidates(start string) []string {
+	trimmed := strings.TrimSpace(start)
+	if trimmed == "" {
+		return nil
+	}
+
+	candidates := make([]string, 0, 12)
+	current := trimmed
+	for {
+		candidates = append(candidates,
+			filepath.Join(current, ".env"),
+			filepath.Join(current, "phakram-service-member", ".env"),
+		)
+
+		next := filepath.Dir(current)
+		if next == current {
+			break
+		}
+		current = next
+	}
+
+	return candidates
+}
+
+func applySupabaseAliases[T any](conf *T) {
+	if conf == nil {
+		return
+	}
+
+	root := reflect.ValueOf(conf)
+	if root.Kind() != reflect.Pointer || root.IsNil() {
+		return
+	}
+
+	structValue := root.Elem()
+	if structValue.Kind() != reflect.Struct {
+		return
+	}
+
+	supabase := structValue.FieldByName("Supabase")
+	if !supabase.IsValid() || supabase.Kind() != reflect.Struct {
+		return
+	}
+
+	setAlias := func(fieldName string, envNames ...string) {
+		field := supabase.FieldByName(fieldName)
+		if !field.IsValid() || field.Kind() != reflect.String || !field.CanSet() {
+			return
+		}
+		if strings.TrimSpace(field.String()) != "" {
+			return
+		}
+
+		for _, envName := range envNames {
+			if value := strings.TrimSpace(os.Getenv(envName)); value != "" {
+				field.SetString(value)
+				return
+			}
+		}
+	}
+
+	setAlias("PublicBucket", "OBJECT_PUBLIC_BUCKET")
+	setAlias("PrivateBucket", "OBJECT_PRIVATE_BUCKET")
 }
 
 // HostName returns the hostname of the service.

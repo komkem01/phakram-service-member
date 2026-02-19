@@ -24,6 +24,7 @@ import (
 	"phakram/app/modules/statuses"
 	"phakram/app/modules/storages"
 	subdistricts "phakram/app/modules/sub_districts"
+	systembankaccounts "phakram/app/modules/system_bank_accounts"
 	"phakram/app/modules/tiers"
 	"phakram/app/modules/zipcodes"
 	appConf "phakram/config"
@@ -44,27 +45,28 @@ type Modules struct {
 	DB     *database.DatabaseModule
 	ENT    *entities.Module
 	// Kafka *kafka.Module
-	Example        *example.Module
-	Example2       *exampletwo.Module
-	Genders        *genders.Module
-	Prefixes       *prefixes.Module
-	Banks          *banks.Module
-	Provinces      *provinces.Module
-	Districts      *districts.Module
-	SubDistricts   *subdistricts.Module
-	Zipcodes       *zipcodes.Module
-	Statuses       *statuses.Module
-	Tiers          *tiers.Module
-	Categories     *categories.Module
-	Products       *products.Module
-	ProductDetails *productdetails.Module
-	ProductStocks  *productstocks.Module
-	Storages       *storages.Module
-	Auth           *auth.Module
-	Members        *members.Module
-	Orders         *orders.Module
-	Payments       *payments.Module
-	Carts          *carts.Module
+	Example            *example.Module
+	Example2           *exampletwo.Module
+	Genders            *genders.Module
+	Prefixes           *prefixes.Module
+	Banks              *banks.Module
+	Provinces          *provinces.Module
+	Districts          *districts.Module
+	SubDistricts       *subdistricts.Module
+	Zipcodes           *zipcodes.Module
+	Statuses           *statuses.Module
+	Tiers              *tiers.Module
+	SystemBankAccounts *systembankaccounts.Module
+	Categories         *categories.Module
+	Products           *products.Module
+	ProductDetails     *productdetails.Module
+	ProductStocks      *productstocks.Module
+	Storages           *storages.Module
+	Auth               *auth.Module
+	Members            *members.Module
+	Orders             *orders.Module
+	Payments           *payments.Module
+	Carts              *carts.Module
 }
 
 func modulesInit() {
@@ -92,11 +94,22 @@ func modulesInit() {
 	zipcodesMod := zipcodes.New(db.Svc, entitiesMod.Svc)
 	statusesMod := statuses.New(db.Svc, entitiesMod.Svc)
 	tiersMod := tiers.New(db.Svc, entitiesMod.Svc)
+	systemBankAccountsMod := systembankaccounts.New(db.Svc)
 	categoriesMod := categories.New(db.Svc, entitiesMod.Svc)
-	productsMod := products.New(db.Svc, entitiesMod.Svc)
+	productsMod := products.New(db.Svc, entitiesMod.Svc, entitiesMod.Svc, products.SupabaseConfig{
+		URL:            conf.Supabase.URL,
+		ServiceRoleKey: conf.Supabase.ServiceRoleKey,
+		PublicBucket:   conf.Supabase.PublicBucket,
+		PrivateBucket:  conf.Supabase.PrivateBucket,
+	})
 	productDetailsMod := productdetails.New(db.Svc)
 	productStocksMod := productstocks.New(db.Svc)
-	storagesMod := storages.New(db.Svc, entitiesMod.Svc)
+	storagesMod := storages.New(db.Svc, entitiesMod.Svc, storages.SupabaseConfig{
+		URL:            conf.Supabase.URL,
+		ServiceRoleKey: conf.Supabase.ServiceRoleKey,
+		PublicBucket:   conf.Supabase.PublicBucket,
+		PrivateBucket:  conf.Supabase.PrivateBucket,
+	})
 	authMod := auth.New(db.Svc, conf.AppKey)
 	membersMod := members.New(
 		db.Svc,
@@ -111,38 +124,44 @@ func modulesInit() {
 		entitiesMod.Svc,
 		entitiesMod.Svc,
 	)
-	ordersMod := orders.New(db.Svc, entitiesMod.Svc, entitiesMod.Svc)
+	ordersMod := orders.New(db.Svc, entitiesMod.Svc, entitiesMod.Svc, orders.SupabaseConfig{
+		URL:            conf.Supabase.URL,
+		ServiceRoleKey: conf.Supabase.ServiceRoleKey,
+		PublicBucket:   conf.Supabase.PublicBucket,
+		PrivateBucket:  conf.Supabase.PrivateBucket,
+	})
 	paymentsMod := payments.New(db.Svc, entitiesMod.Svc)
 	cartsMod := carts.New(db.Svc, entitiesMod.Svc, entitiesMod.Svc)
 	mod = &Modules{
-		Conf:           confMod,
-		Specs:          specsMod,
-		Log:            logMod,
-		OTEL:           otel,
-		Sentry:         sentryMod,
-		DB:             db,
-		ENT:            entitiesMod,
-		Example:        exampleMod,
-		Example2:       exampleMod2,
-		Genders:        gendersMod,
-		Prefixes:       prefixesMod,
-		Banks:          banksMod,
-		Provinces:      provincesMod,
-		Districts:      districtsMod,
-		SubDistricts:   subDistrictsMod,
-		Zipcodes:       zipcodesMod,
-		Statuses:       statusesMod,
-		Tiers:          tiersMod,
-		Categories:     categoriesMod,
-		Products:       productsMod,
-		ProductDetails: productDetailsMod,
-		ProductStocks:  productStocksMod,
-		Storages:       storagesMod,
-		Auth:           authMod,
-		Members:        membersMod,
-		Orders:         ordersMod,
-		Payments:       paymentsMod,
-		Carts:          cartsMod,
+		Conf:               confMod,
+		Specs:              specsMod,
+		Log:                logMod,
+		OTEL:               otel,
+		Sentry:             sentryMod,
+		DB:                 db,
+		ENT:                entitiesMod,
+		Example:            exampleMod,
+		Example2:           exampleMod2,
+		Genders:            gendersMod,
+		Prefixes:           prefixesMod,
+		Banks:              banksMod,
+		Provinces:          provincesMod,
+		Districts:          districtsMod,
+		SubDistricts:       subDistrictsMod,
+		Zipcodes:           zipcodesMod,
+		Statuses:           statusesMod,
+		Tiers:              tiersMod,
+		SystemBankAccounts: systemBankAccountsMod,
+		Categories:         categoriesMod,
+		Products:           productsMod,
+		ProductDetails:     productDetailsMod,
+		ProductStocks:      productStocksMod,
+		Storages:           storagesMod,
+		Auth:               authMod,
+		Members:            membersMod,
+		Orders:             ordersMod,
+		Payments:           paymentsMod,
+		Carts:              cartsMod,
 	}
 
 	log.Infof("all modules initialized")

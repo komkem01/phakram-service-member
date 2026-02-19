@@ -13,11 +13,20 @@ type Module struct {
 	Ctl *Controller
 }
 
+type SupabaseConfig struct {
+	URL            string
+	ServiceRoleKey string
+	PublicBucket   string
+	PrivateBucket  string
+}
+
 type (
 	Service struct {
-		tracer trace.Tracer
-		bunDB  *database.DatabaseService
-		db     entitiesinf.ProductEntity
+		tracer      trace.Tracer
+		bunDB       *database.DatabaseService
+		db          entitiesinf.ProductEntity
+		supabase    *supabaseStorageClient
+		productFile entitiesinf.ProductFileEntity
 	}
 	Controller struct {
 		tracer trace.Tracer
@@ -26,17 +35,26 @@ type (
 )
 
 type Options struct {
-	tracer trace.Tracer
-	bunDB  *database.DatabaseService
-	db     entitiesinf.ProductEntity
+	tracer       trace.Tracer
+	bunDB        *database.DatabaseService
+	db           entitiesinf.ProductEntity
+	supabaseConf SupabaseConfig
+	productFile  entitiesinf.ProductFileEntity
 }
 
-func New(bunDB *database.DatabaseService, db entitiesinf.ProductEntity) *Module {
+func New(
+	bunDB *database.DatabaseService,
+	db entitiesinf.ProductEntity,
+	productFile entitiesinf.ProductFileEntity,
+	supabaseConf SupabaseConfig,
+) *Module {
 	tracer := otel.Tracer("products_module")
 	svc := newService(&Options{
-		tracer: tracer,
-		bunDB:  bunDB,
-		db:     db,
+		tracer:       tracer,
+		bunDB:        bunDB,
+		db:           db,
+		productFile:  productFile,
+		supabaseConf: supabaseConf,
 	})
 	return &Module{
 		Svc: svc,
@@ -46,9 +64,11 @@ func New(bunDB *database.DatabaseService, db entitiesinf.ProductEntity) *Module 
 
 func newService(opt *Options) *Service {
 	return &Service{
-		tracer: opt.tracer,
-		bunDB:  opt.bunDB,
-		db:     opt.db,
+		tracer:      opt.tracer,
+		bunDB:       opt.bunDB,
+		db:          opt.db,
+		productFile: opt.productFile,
+		supabase:    newSupabaseStorageClient(opt.supabaseConf),
 	}
 }
 
