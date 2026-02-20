@@ -6,9 +6,13 @@ COPY . /app
 RUN mkdir -p /app/dist
 ARG VERSION=dev
 ENV VERSION=${VERSION}
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-X phakram/internal/config.version=${VERSION}" -modcacherw -o ./dist/ .;
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-X phakram/internal/config.version=${VERSION}" -modcacherw -o /app/dist/phakram-service-member .
+
 FROM gcr.io/distroless/static AS serve
 WORKDIR /app
-COPY --from=builder /app/dist/ /app/
+COPY --from=builder /app/dist/phakram-service-member /app/phakram-service-member
 ARG SPECS_VERSION=latest
 ENV SPECS_VERSION=${SPECS_VERSION}
+EXPOSE 8080
+ENTRYPOINT ["/app/phakram-service-member"]
+CMD ["http"]
