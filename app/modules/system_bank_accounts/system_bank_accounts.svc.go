@@ -27,6 +27,7 @@ type SystemBankAccountServiceResponse struct {
 	AccountName      string    `json:"account_name"`
 	AccountNo        string    `json:"account_no"`
 	Branch           string    `json:"branch"`
+	QRCodeImageURL   string    `json:"qr_image_url"`
 	IsActive         bool      `json:"is_active"`
 	IsDefaultReceive bool      `json:"is_default_receive"`
 	IsDefaultRefund  bool      `json:"is_default_refund"`
@@ -39,6 +40,7 @@ type UpsertSystemBankAccountServiceRequest struct {
 	AccountName      string
 	AccountNo        string
 	Branch           string
+	QRCodeImageURL   string
 	IsActive         bool
 	IsDefaultReceive bool
 	IsDefaultRefund  bool
@@ -52,6 +54,7 @@ type systemBankAccountRow struct {
 	AccountName      string    `bun:"account_name"`
 	AccountNo        string    `bun:"account_no"`
 	Branch           string    `bun:"branch"`
+	QRCodeImageURL   string    `bun:"qr_image_url"`
 	IsActive         bool      `bun:"is_active"`
 	IsDefaultReceive bool      `bun:"is_default_receive"`
 	IsDefaultRefund  bool      `bun:"is_default_refund"`
@@ -89,6 +92,7 @@ func (s *Service) ListService(ctx context.Context, req *ListSystemBankAccountSer
 		ColumnExpr("sba.account_name AS account_name").
 		ColumnExpr("sba.account_no AS account_no").
 		ColumnExpr("sba.branch AS branch").
+		ColumnExpr("sba.qr_image_url AS qr_image_url").
 		ColumnExpr("sba.is_active AS is_active").
 		ColumnExpr("sba.is_default_receive AS is_default_receive").
 		ColumnExpr("sba.is_default_refund AS is_default_refund").
@@ -111,6 +115,7 @@ func (s *Service) ListService(ctx context.Context, req *ListSystemBankAccountSer
 			AccountName:      row.AccountName,
 			AccountNo:        row.AccountNo,
 			Branch:           row.Branch,
+			QRCodeImageURL:   row.QRCodeImageURL,
 			IsActive:         row.IsActive,
 			IsDefaultReceive: row.IsDefaultReceive,
 			IsDefaultRefund:  row.IsDefaultRefund,
@@ -144,6 +149,7 @@ func (s *Service) InfoService(ctx context.Context, id string) (*SystemBankAccoun
 		ColumnExpr("sba.account_name AS account_name").
 		ColumnExpr("sba.account_no AS account_no").
 		ColumnExpr("sba.branch AS branch").
+		ColumnExpr("sba.qr_image_url AS qr_image_url").
 		ColumnExpr("sba.is_active AS is_active").
 		ColumnExpr("sba.is_default_receive AS is_default_receive").
 		ColumnExpr("sba.is_default_refund AS is_default_refund").
@@ -165,6 +171,7 @@ func (s *Service) InfoService(ctx context.Context, id string) (*SystemBankAccoun
 		AccountName:      row.AccountName,
 		AccountNo:        row.AccountNo,
 		Branch:           row.Branch,
+		QRCodeImageURL:   row.QRCodeImageURL,
 		IsActive:         row.IsActive,
 		IsDefaultReceive: row.IsDefaultReceive,
 		IsDefaultRefund:  row.IsDefaultRefund,
@@ -189,6 +196,7 @@ func (s *Service) CreateService(ctx context.Context, req *UpsertSystemBankAccoun
 		AccountName:      strings.TrimSpace(req.AccountName),
 		AccountNo:        strings.TrimSpace(req.AccountNo),
 		Branch:           strings.TrimSpace(req.Branch),
+		QRCodeImageURL:   strings.TrimSpace(req.QRCodeImageURL),
 		IsActive:         req.IsActive,
 		IsDefaultReceive: req.IsDefaultReceive,
 		IsDefaultRefund:  req.IsDefaultRefund,
@@ -256,6 +264,7 @@ func (s *Service) UpdateService(ctx context.Context, id string, req *UpsertSyste
 	item.AccountName = strings.TrimSpace(req.AccountName)
 	item.AccountNo = strings.TrimSpace(req.AccountNo)
 	item.Branch = strings.TrimSpace(req.Branch)
+	item.QRCodeImageURL = strings.TrimSpace(req.QRCodeImageURL)
 	item.IsActive = req.IsActive
 	item.IsDefaultReceive = req.IsDefaultReceive
 	item.IsDefaultRefund = req.IsDefaultRefund

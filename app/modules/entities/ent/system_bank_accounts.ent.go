@@ -15,6 +15,7 @@ type SystemBankAccountEntity struct {
 	AccountName      string    `bun:"account_name" json:"account_name"`
 	AccountNo        string    `bun:"account_no" json:"account_no"`
 	Branch           string    `bun:"branch" json:"branch"`
+	QRCodeImageURL   string    `bun:"qr_image_url" json:"qr_image_url"`
 	IsActive         bool      `bun:"is_active" json:"is_active"`
 	IsDefaultReceive bool      `bun:"is_default_receive" json:"is_default_receive"`
 	IsDefaultRefund  bool      `bun:"is_default_refund" json:"is_default_refund"`

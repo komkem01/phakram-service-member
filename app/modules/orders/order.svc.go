@@ -3,6 +3,7 @@ package orders
 import (
 	"context"
 	"database/sql"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	entitiesdto "phakram/app/modules/entities/dto"
@@ -687,11 +688,44 @@ func (s *Service) UpdateOrderService(ctx context.Context, orderID uuid.UUID, req
 	shippingTrackingNo := strings.TrimSpace(req.ShippingTrackingNo)
 	cancelReason := normalizeOrderCancellationReason(req.CancelReason)
 	refundReason := normalizeOrderCancellationReason(req.RefundReason)
+	isRequestingRefund := nextStatus == ent.StatusTypeRefundRequested
+	isRefundReviewTransition := data.Status == ent.StatusTypeRefundRequested && (nextStatus == ent.StatusTypePaid || nextStatus == ent.StatusTypeCancelled)
 
 	paymentReviewState, err := s.getOrderPaymentReviewState(ctx, data.ID)
 	if err != nil {
 		return err
 	}
+
+	if isRequestingRefund {
+		if !isAdmin {
+			if data.Status != ent.StatusTypePaid && data.Status != ent.StatusTypeShipping && data.Status != ent.StatusTypeCompleted {
+				return errors.New("refund request is allowed only after payment approval")
+			}
+		}
+
+		paymentStatus, paymentErr := s.getOrderPaymentStatus(ctx, data.PaymentID)
+		if paymentErr != nil {
+			return paymentErr
+		}
+		if paymentStatus != ent.PaymentTypeSuccess {
+			return errors.New("refund request requires successful payment")
+		}
+	}
+
+	if isRefundReviewTransition {
+		if !isAdmin {
+			return errors.New("only admin can review refund request")
+		}
+
+		paymentStatus, paymentErr := s.getOrderPaymentStatus(ctx, data.PaymentID)
+		if paymentErr != nil {
+			return paymentErr
+		}
+		if paymentStatus != ent.PaymentTypeSuccess {
+			return errors.New("refund review requires successful payment")
+		}
+	}
+
 	if nextStatus == ent.StatusTypeCancelled && paymentReviewState.Submitted && data.Status != ent.StatusTypeRefundRequested {
 		return errors.New("cannot cancel order after payment submission")
 	}
@@ -1118,6 +1152,31 @@ func (s *Service) applyOrderStatusSideEffects(ctx context.Context, tx bun.Tx, or
 		}
 	}
 
+	if previousStatus == ent.StatusTypeRefundRequested && order.Status == ent.StatusTypeCancelled {
+		if order.PaymentID == uuid.Nil {
+			return errors.New("payment not found")
+		}
+
+		payment := new(ent.PaymentEntity)
+		if err := tx.NewSelect().Model(payment).Where("id = ?", order.PaymentID).Limit(1).Scan(ctx); err != nil {
+			return err
+		}
+
+		now := time.Now()
+		payment.Status = ent.PaymentTypeRefunded
+		if requesterID != uuid.Nil {
+			payment.ApprovedBy = &requesterID
+			payment.ApprovedAt = &now
+		} else {
+			payment.ApprovedBy = nil
+			payment.ApprovedAt = nil
+		}
+
+		if _, err := tx.NewUpdate().Model(payment).Where("id = ?", payment.ID).Exec(ctx); err != nil {
+			return err
+		}
+	}
+
 	if previousStatus != ent.StatusTypeShipping && order.Status == ent.StatusTypeShipping {
 		if err := s.decreaseStockFromOrderItems(ctx, tx, order.ID); err != nil {
 			return err
@@ -1206,6 +1265,22 @@ func (s *Service) getActualPaidAmountInTx(ctx context.Context, tx bun.Tx, order 
 	}
 
 	return amount, nil
+}
+
+func (s *Service) getOrderPaymentStatus(ctx context.Context, paymentID uuid.UUID) (ent.PaymentTypeEnum, error) {
+	if paymentID == uuid.Nil {
+		return "", errors.New("payment not found")
+	}
+
+	payment := new(ent.PaymentEntity)
+	if err := s.bunDB.DB().NewSelect().Model(payment).Where("id = ?", paymentID).Limit(1).Scan(ctx); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", errors.New("payment not found")
+		}
+		return "", err
+	}
+
+	return payment.Status, nil
 }
 
 func (s *Service) createMemberPaymentFromOrder(ctx context.Context, tx bun.Tx, order *ent.OrderEntity) error {
@@ -1325,24 +1400,50 @@ func (s *Service) ConfirmOrderPaymentService(ctx context.Context, orderID uuid.U
 	slipFileSize := req.SlipFileSize
 
 	if slipAttached {
-		if s.supabase == nil || !s.supabase.enabledForPrivate() {
-			return nil, errors.New("supabase storage is not configured")
-		}
+		trimmedSlipBase64 := strings.TrimSpace(req.SlipImageBase64)
 
-		uploadedSlip, err := s.supabase.UploadPaymentSlip(ctx, order.ID, order.PaymentID, slipFileName, strings.TrimSpace(req.SlipImageBase64))
-		if err != nil {
-			return nil, err
-		}
+		if s.supabase != nil && s.supabase.enabledForPrivate() {
+			uploadedSlip, err := s.supabase.UploadPaymentSlip(ctx, order.ID, order.PaymentID, slipFileName, trimmedSlipBase64)
+			if err != nil {
+				return nil, err
+			}
 
-		slipFilePath = uploadedSlip.Path
-		if slipFileName == "" {
-			slipFileName = uploadedSlip.FileName
-		}
-		if slipFileType == "" {
-			slipFileType = uploadedSlip.MIMEType
-		}
-		if slipFileSize <= 0 {
-			slipFileSize = uploadedSlip.Size
+			slipFilePath = uploadedSlip.Path
+			if slipFileName == "" {
+				slipFileName = uploadedSlip.FileName
+			}
+			if slipFileType == "" {
+				slipFileType = uploadedSlip.MIMEType
+			}
+			if slipFileSize <= 0 {
+				slipFileSize = uploadedSlip.Size
+			}
+		} else {
+			decodedSlip, detectedMIME, err := decodeBase64Image(trimmedSlipBase64)
+			if err != nil {
+				return nil, err
+			}
+			if len(decodedSlip) == 0 {
+				return nil, errors.New("slip image is empty")
+			}
+			if len(decodedSlip) > maxSlipFileSizeBytes {
+				return nil, errors.New("slip image exceeds 5 MB")
+			}
+			if !isAllowedImageMIME(detectedMIME) {
+				return nil, fmt.Errorf("unsupported slip image type: %s", detectedMIME)
+			}
+
+			slipFilePath = trimmedSlipBase64
+			if !strings.HasPrefix(strings.ToLower(trimmedSlipBase64), "data:") {
+				slipFilePath = fmt.Sprintf("data:%s;base64,%s", detectedMIME, base64.StdEncoding.EncodeToString(decodedSlip))
+			}
+
+			if slipFileType == "" {
+				slipFileType = detectedMIME
+			}
+			if slipFileSize <= 0 {
+				slipFileSize = int64(len(decodedSlip))
+			}
 		}
 	}
 

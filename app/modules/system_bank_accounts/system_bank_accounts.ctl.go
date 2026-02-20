@@ -21,6 +21,7 @@ type UpsertSystemBankAccountControllerRequest struct {
 	AccountName      string `json:"account_name"`
 	AccountNo        string `json:"account_no"`
 	Branch           string `json:"branch"`
+	QRCodeImageURL   string `json:"qr_image_url"`
 	IsActive         bool   `json:"is_active"`
 	IsDefaultReceive bool   `json:"is_default_receive"`
 	IsDefaultRefund  bool   `json:"is_default_refund"`
@@ -38,6 +39,7 @@ type ListSystemBankAccountControllerResponse struct {
 	AccountName      string    `json:"account_name"`
 	AccountNo        string    `json:"account_no"`
 	Branch           string    `json:"branch"`
+	QRCodeImageURL   string    `json:"qr_image_url"`
 	IsActive         bool      `json:"is_active"`
 	IsDefaultReceive bool      `json:"is_default_receive"`
 	IsDefaultRefund  bool      `json:"is_default_refund"`
@@ -126,6 +128,7 @@ func (c *Controller) CreateController(ctx *gin.Context) {
 		AccountName:      req.AccountName,
 		AccountNo:        req.AccountNo,
 		Branch:           req.Branch,
+		QRCodeImageURL:   req.QRCodeImageURL,
 		IsActive:         req.IsActive,
 		IsDefaultReceive: req.IsDefaultReceive,
 		IsDefaultRefund:  req.IsDefaultRefund,
@@ -161,6 +164,7 @@ func (c *Controller) UpdateController(ctx *gin.Context) {
 		AccountName:      req.AccountName,
 		AccountNo:        req.AccountNo,
 		Branch:           req.Branch,
+		QRCodeImageURL:   req.QRCodeImageURL,
 		IsActive:         req.IsActive,
 		IsDefaultReceive: req.IsDefaultReceive,
 		IsDefaultRefund:  req.IsDefaultRefund,
