@@ -1217,21 +1217,47 @@ func (s *Service) addMemberSpendAndPointsFromOrder(ctx context.Context, tx bun.T
 	now := time.Now()
 	member.TotalSpent = member.TotalSpent.Add(actualPaidAmount).Round(2)
 	member.CurrentPoints += earnedPoints
+
+	upgradedTierName := ""
+	upgradedToTierID := uuid.Nil
+	nextTier, err := s.findHighestEligibleTierBySpendingInTx(ctx, tx, member.TotalSpent)
+	if err != nil {
+		return err
+	}
+	if nextTier != nil && member.TierID != nextTier.ID {
+		member.TierID = nextTier.ID
+		upgradedToTierID = nextTier.ID
+		if strings.TrimSpace(nextTier.NameTh) != "" {
+			upgradedTierName = strings.TrimSpace(nextTier.NameTh)
+		} else {
+			upgradedTierName = strings.TrimSpace(nextTier.NameEn)
+		}
+	}
+
 	member.UpdatedAt = now
 
 	if _, err := tx.NewUpdate().
 		Model(member).
-		Column("total_spent", "current_points", "updated_at").
+		Column("total_spent", "current_points", "tier_id", "updated_at").
 		Where("id = ?", member.ID).
 		Exec(ctx); err != nil {
 		return err
+	}
+
+	details := fmt.Sprintf("Order %s completed: total_spent +%s, points +%d", order.OrderNo, actualPaidAmount.StringFixed(2), earnedPoints)
+	if upgradedToTierID != uuid.Nil {
+		if upgradedTierName != "" {
+			details = fmt.Sprintf("%s, tier upgraded to %s", details, upgradedTierName)
+		} else {
+			details = fmt.Sprintf("%s, tier upgraded", details)
+		}
 	}
 
 	memberTx := &ent.MemberTransactionEntity{
 		ID:        uuid.New(),
 		MemberID:  member.ID,
 		Action:    ent.MemberActionUpdated,
-		Details:   fmt.Sprintf("Order %s completed: total_spent +%s, points +%d", order.OrderNo, actualPaidAmount.StringFixed(2), earnedPoints),
+		Details:   details,
 		CreatedAt: now,
 	}
 	if _, err := tx.NewInsert().Model(memberTx).Exec(ctx); err != nil {
@@ -1239,6 +1265,25 @@ func (s *Service) addMemberSpendAndPointsFromOrder(ctx context.Context, tx bun.T
 	}
 
 	return nil
+}
+
+func (s *Service) findHighestEligibleTierBySpendingInTx(ctx context.Context, tx bun.Tx, totalSpent decimal.Decimal) (*ent.TierEntity, error) {
+	tier := new(ent.TierEntity)
+	err := tx.NewSelect().
+		Model(tier).
+		Where("is_active = ?", true).
+		Where("min_spending <= ?", totalSpent).
+		OrderExpr("min_spending DESC, created_at DESC").
+		Limit(1).
+		Scan(ctx)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return tier, nil
 }
 
 func (s *Service) getActualPaidAmountInTx(ctx context.Context, tx bun.Tx, order *ent.OrderEntity) (decimal.Decimal, error) {
