@@ -17,6 +17,7 @@ func api(r *gin.RouterGroup, mod *modules.Modules) {
 	r.GET("/example/:id", mod.Example.Ctl.Get)
 	r.GET("/example-http", mod.Example.Ctl.GetHttpReq)
 	r.POST("/example", mod.Example.Ctl.Create)
+	r.POST("/contact", mod.Contact.Ctl.SubmitController)
 }
 
 func apiSystem(r *gin.RouterGroup, mod *modules.Modules) {
@@ -167,6 +168,8 @@ func apiStorage(r *gin.RouterGroup, mod *modules.Modules) {
 func apiPublic(r *gin.RouterGroup, mod *modules.Modules) {
 	public := r.Group("/public")
 	{
+		public.POST("/contact", mod.Contact.Ctl.SubmitController)
+
 		auth := public.Group("/auth")
 		{
 			auth.POST("/login", mod.Auth.Ctl.LoginController)
@@ -192,6 +195,11 @@ func apiAuth(r *gin.RouterGroup, mod *modules.Modules) {
 		auth.PATCH("/notifications/:id/unread", mod.Orders.Ctl.MarkMemberNotificationUnreadController)
 		auth.POST("/act-as", mod.Auth.Ctl.ActAsMemberController)
 		auth.POST("/act-as/exit", mod.Auth.Ctl.ExitActAsController)
+		auth.GET("/contact-messages", mod.Contact.Ctl.ListController)
+		auth.GET("/contact-messages/unread-count", mod.Contact.Ctl.CountUnreadController)
+		auth.GET("/contact-messages/:id", mod.Contact.Ctl.InfoController)
+		auth.PATCH("/contact-messages/:id/read", mod.Contact.Ctl.MarkReadController)
+		auth.PATCH("/contact-messages/:id/unread", mod.Contact.Ctl.MarkUnreadController)
 
 		members := auth.Group("/members")
 		{

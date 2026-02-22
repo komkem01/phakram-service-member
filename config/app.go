@@ -1,6 +1,7 @@
 package config
 
 import (
+	"phakram/app/modules/contact"
 	"phakram/app/modules/example"
 	exampletwo "phakram/app/modules/example-two"
 	"phakram/app/modules/sentry"
@@ -31,8 +32,9 @@ type Config struct {
 	Otel   collector.Config
 	Sentry sentry.Config
 
-	Kafka kafka.Config
-	Log   log.Option
+	Kafka   kafka.Config
+	Log     log.Option
+	Contact contact.Config
 
 	Example example.Config
 
@@ -53,6 +55,13 @@ var App = Config{
 	Database: database,
 	Kafka:    kafkaConf,
 	Supabase: SupabaseConfig{},
+	Contact: contact.Config{
+		RecipientEmail: "komkem.contact@gmail.com",
+		Mail: contact.MailConfig{
+			Host: "",
+			Port: 587,
+		},
+	},
 
 	AppName: "go_app",
 	Port:    8081,

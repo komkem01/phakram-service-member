@@ -6,6 +6,7 @@ import (
 	"phakram/app/modules/banks"
 	"phakram/app/modules/carts"
 	"phakram/app/modules/categories"
+	"phakram/app/modules/contact"
 	"phakram/app/modules/districts"
 	"phakram/app/modules/entities"
 	"phakram/app/modules/example"
@@ -47,6 +48,7 @@ type Modules struct {
 	// Kafka *kafka.Module
 	Example            *example.Module
 	Example2           *exampletwo.Module
+	Contact            *contact.Module
 	Genders            *genders.Module
 	Prefixes           *prefixes.Module
 	Banks              *banks.Module
@@ -130,6 +132,7 @@ func modulesInit() {
 		PublicBucket:   conf.Supabase.PublicBucket,
 		PrivateBucket:  conf.Supabase.PrivateBucket,
 	})
+	contactMod := contact.New(db.Svc, &conf.Contact)
 	paymentsMod := payments.New(db.Svc, entitiesMod.Svc)
 	cartsMod := carts.New(db.Svc, entitiesMod.Svc, entitiesMod.Svc)
 	mod = &Modules{
@@ -142,6 +145,7 @@ func modulesInit() {
 		ENT:                entitiesMod,
 		Example:            exampleMod,
 		Example2:           exampleMod2,
+		Contact:            contactMod,
 		Genders:            gendersMod,
 		Prefixes:           prefixesMod,
 		Banks:              banksMod,
