@@ -16,18 +16,19 @@ import (
 type contactMessageRecord struct {
 	bun.BaseModel `bun:"table:contact_messages"`
 
-	ID         uuid.UUID  `bun:"id,pk,type:uuid"`
-	Name       string     `bun:"name,notnull"`
-	Email      string     `bun:"email,notnull"`
-	Subject    string     `bun:"subject,notnull"`
-	Message    string     `bun:"message,notnull"`
-	SendStatus string     `bun:"send_status,notnull"`
-	IsRead     bool       `bun:"is_read,notnull"`
-	SendError  string     `bun:"send_error"`
-	SentAt     *time.Time `bun:"sent_at"`
-	ReadAt     *time.Time `bun:"read_at"`
-	CreatedAt  time.Time  `bun:"created_at,notnull"`
-	UpdatedAt  time.Time  `bun:"updated_at,notnull"`
+	ID          uuid.UUID  `bun:"id,pk,type:uuid"`
+	AccessToken string     `bun:"access_token,notnull"`
+	Name        string     `bun:"name,notnull"`
+	Email       string     `bun:"email,notnull"`
+	Subject     string     `bun:"subject,notnull"`
+	Message     string     `bun:"message,notnull"`
+	SendStatus  string     `bun:"send_status,notnull"`
+	IsRead      bool       `bun:"is_read,notnull"`
+	SendError   string     `bun:"send_error"`
+	SentAt      *time.Time `bun:"sent_at"`
+	ReadAt      *time.Time `bun:"read_at"`
+	CreatedAt   time.Time  `bun:"created_at,notnull"`
+	UpdatedAt   time.Time  `bun:"updated_at,notnull"`
 }
 
 type SubmitContactService struct {
@@ -38,8 +39,9 @@ type SubmitContactService struct {
 }
 
 type SubmitContactResult struct {
-	ID      string `json:"id"`
-	Message string `json:"message"`
+	ID        string `json:"id"`
+	ChatToken string `json:"chat_token"`
+	Message   string `json:"message"`
 }
 
 func (s *Service) Submit(ctx context.Context, req *SubmitContactService) (*SubmitContactResult, error) {
@@ -48,17 +50,19 @@ func (s *Service) Submit(ctx context.Context, req *SubmitContactService) (*Submi
 
 	now := time.Now()
 	id := uuid.New()
+	accessToken := strings.ReplaceAll(uuid.New().String(), "-", "")
 
 	record := &contactMessageRecord{
-		ID:         id,
-		Name:       req.Name,
-		Email:      req.Email,
-		Subject:    req.Subject,
-		Message:    req.Message,
-		SendStatus: "pending",
-		IsRead:     false,
-		CreatedAt:  now,
-		UpdatedAt:  now,
+		ID:          id,
+		AccessToken: accessToken,
+		Name:        req.Name,
+		Email:       req.Email,
+		Subject:     req.Subject,
+		Message:     req.Message,
+		SendStatus:  "pending",
+		IsRead:      false,
+		CreatedAt:   now,
+		UpdatedAt:   now,
 	}
 
 	if _, err := s.bunDB.DB().NewInsert().Model(record).Exec(ctx); err != nil {
@@ -88,8 +92,9 @@ func (s *Service) Submit(ctx context.Context, req *SubmitContactService) (*Submi
 
 	span.AddEvent("contact.svc.submit.success")
 	return &SubmitContactResult{
-		ID:      id.String(),
-		Message: "ส่งข้อความเรียบร้อยแล้ว",
+		ID:        id.String(),
+		ChatToken: accessToken,
+		Message:   "ส่งข้อความเรียบร้อยแล้ว",
 	}, nil
 }
 

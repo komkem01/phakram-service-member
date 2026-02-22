@@ -169,6 +169,8 @@ func apiPublic(r *gin.RouterGroup, mod *modules.Modules) {
 	public := r.Group("/public")
 	{
 		public.POST("/contact", mod.Contact.Ctl.SubmitController)
+		public.GET("/contact/:id/replies", mod.Contact.Ctl.ListRepliesPublicController)
+		public.POST("/contact/:id/replies", mod.Contact.Ctl.CreateReplyPublicController)
 
 		auth := public.Group("/auth")
 		{
@@ -197,6 +199,8 @@ func apiAuth(r *gin.RouterGroup, mod *modules.Modules) {
 		auth.POST("/act-as/exit", mod.Auth.Ctl.ExitActAsController)
 		auth.GET("/contact-messages", mod.Contact.Ctl.ListController)
 		auth.GET("/contact-messages/unread-count", mod.Contact.Ctl.CountUnreadController)
+		auth.GET("/contact-messages/:id/replies", mod.Contact.Ctl.ListRepliesController)
+		auth.POST("/contact-messages/:id/replies", mod.Contact.Ctl.CreateReplyController)
 		auth.GET("/contact-messages/:id", mod.Contact.Ctl.InfoController)
 		auth.PATCH("/contact-messages/:id/read", mod.Contact.Ctl.MarkReadController)
 		auth.PATCH("/contact-messages/:id/unread", mod.Contact.Ctl.MarkUnreadController)
