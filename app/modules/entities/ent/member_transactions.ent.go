@@ -13,6 +13,7 @@ const (
 	MemberActionCreated    MemberActionEnum = "created"
 	MemberActionUpdated    MemberActionEnum = "updated"
 	MemberActionDeleted    MemberActionEnum = "deleted"
+	MemberActionRead       MemberActionEnum = "read"
 	MemberActionLogined    MemberActionEnum = "logined"
 	MemberActionRegistered MemberActionEnum = "registered"
 )

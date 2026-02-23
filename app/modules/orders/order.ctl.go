@@ -27,6 +27,7 @@ type CreateOrderControllerRequest struct {
 	MemberID           string `json:"member_id"`
 	PaymentID          string `json:"payment_id"`
 	AddressID          string `json:"address_id"`
+	PromotionCode      string `json:"promotion_code"`
 	Status             string `json:"status"`
 	ShippingTrackingNo string `json:"shipping_tracking_no"`
 	TotalAmount        string `json:"total_amount"`
@@ -252,6 +253,7 @@ func (c *Controller) CreateOrderController(ctx *gin.Context) {
 		MemberID:           memberID,
 		PaymentID:          paymentID,
 		AddressID:          addressID,
+		PromotionCode:      req.PromotionCode,
 		Status:             req.Status,
 		ShippingTrackingNo: req.ShippingTrackingNo,
 		TotalAmount:        req.TotalAmount,

@@ -19,12 +19,11 @@ func auditFailureMiddleware(mod *modules.Modules) gin.HandlerFunc {
 		ctx.Next()
 
 		status := ctx.Writer.Status()
-		if status < http.StatusBadRequest {
-			return
-		}
-
 		fullPath := ctx.FullPath()
 		if fullPath == "" || strings.HasPrefix(fullPath, "/healthz") {
+			return
+		}
+		if !strings.HasPrefix(fullPath, "/api/") {
 			return
 		}
 
@@ -33,18 +32,62 @@ func auditFailureMiddleware(mod *modules.Modules) gin.HandlerFunc {
 		actionID := auditActionID(ctx)
 		actionBy := auditActionBy(ctx)
 
+		auditStatus := ent.StatusAuditSuccesses
+		detail := fmt.Sprintf("Request success: %s %s (%d)", ctx.Request.Method, fullPath, status)
+		if status >= http.StatusBadRequest {
+			auditStatus = ent.StatusAuditFailed
+			detail = fmt.Sprintf("Request failed: %s %s (%d)", ctx.Request.Method, fullPath, status)
+		}
+
 		log := &ent.AuditLogEntity{
 			ID:           uuid.New(),
 			Action:       action,
 			ActionType:   actionType,
 			ActionID:     actionID,
 			ActionBy:     actionBy,
-			Status:       ent.StatusAuditFailed,
-			ActionDetail: fmt.Sprintf("Request failed: %s %s (%d)", ctx.Request.Method, fullPath, status),
+			Status:       auditStatus,
+			ActionDetail: detail,
 			CreatedAt:    time.Now(),
 			UpdatedAt:    time.Now(),
 		}
 		_ = mod.ENT.Svc.CreateAuditLog(ctx.Request.Context(), log)
+
+		memberAction, ok := memberActionForAuditAction(action)
+		if !ok {
+			return
+		}
+
+		actorMemberID, ok := auth.GetActorMemberID(ctx)
+		if !ok || actorMemberID == uuid.Nil {
+			return
+		}
+
+		memberTransaction := &ent.MemberTransactionEntity{
+			ID:       uuid.New(),
+			MemberID: actorMemberID,
+			Action:   memberAction,
+			Details:  detail,
+		}
+		_ = mod.ENT.Svc.CreateMemberTransaction(ctx.Request.Context(), memberTransaction)
+	}
+}
+
+func memberActionForAuditAction(action ent.AuditActionEnum) (ent.MemberActionEnum, bool) {
+	switch action {
+	case ent.AuditActionCreated:
+		return ent.MemberActionCreated, true
+	case ent.AuditActionUpdated:
+		return ent.MemberActionUpdated, true
+	case ent.AuditActionDeleted:
+		return ent.MemberActionDeleted, true
+	case ent.AuditActionLogined:
+		return ent.MemberActionLogined, true
+	case ent.AuditActionRegistered:
+		return ent.MemberActionRegistered, true
+	case ent.AuditActionRead:
+		return ent.MemberActionRead, true
+	default:
+		return "", false
 	}
 }
 
@@ -92,7 +135,7 @@ func auditActionBy(ctx *gin.Context) *uuid.UUID {
 		return nil
 	}
 
-	memberID, ok := auth.GetMemberID(ctx)
+	memberID, ok := auth.GetActorMemberID(ctx)
 	if !ok || memberID == uuid.Nil {
 		return nil
 	}

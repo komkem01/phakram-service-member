@@ -19,6 +19,7 @@ import (
 	productdetails "phakram/app/modules/product_details"
 	productstocks "phakram/app/modules/product_stocks"
 	"phakram/app/modules/products"
+	"phakram/app/modules/promotions"
 	"phakram/app/modules/provinces"
 	"phakram/app/modules/sentry"
 	"phakram/app/modules/specs"
@@ -69,6 +70,7 @@ type Modules struct {
 	Orders             *orders.Module
 	Payments           *payments.Module
 	Carts              *carts.Module
+	Promotions         *promotions.Module
 }
 
 func modulesInit() {
@@ -135,6 +137,7 @@ func modulesInit() {
 	contactMod := contact.New(db.Svc, &conf.Contact)
 	paymentsMod := payments.New(db.Svc, entitiesMod.Svc)
 	cartsMod := carts.New(db.Svc, entitiesMod.Svc, entitiesMod.Svc)
+	promotionsMod := promotions.New(db.Svc)
 	mod = &Modules{
 		Conf:               confMod,
 		Specs:              specsMod,
@@ -166,6 +169,7 @@ func modulesInit() {
 		Orders:             ordersMod,
 		Payments:           paymentsMod,
 		Carts:              cartsMod,
+		Promotions:         promotionsMod,
 	}
 
 	log.Infof("all modules initialized")

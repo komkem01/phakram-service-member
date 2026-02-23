@@ -35,11 +35,44 @@ type CreateOrderServiceRequest struct {
 	MemberID           uuid.UUID
 	PaymentID          uuid.UUID
 	AddressID          uuid.UUID
+	PromotionCode      string
 	Status             string
 	ShippingTrackingNo string
 	TotalAmount        string
 	DiscountAmount     string
 	NetAmount          string
+}
+
+type promotionEntity struct {
+	bun.BaseModel `bun:"table:promotions"`
+
+	ID             uuid.UUID  `bun:"id,pk,type:uuid"`
+	Code           string     `bun:"code,notnull"`
+	DiscountType   string     `bun:"discount_type,notnull"`
+	DiscountValue  float64    `bun:"discount_value,notnull"`
+	MaxDiscount    *float64   `bun:"max_discount"`
+	MinOrderAmount float64    `bun:"min_order_amount,notnull"`
+	UsageLimit     *int       `bun:"usage_limit"`
+	UsagePerMember *int       `bun:"usage_per_member"`
+	UsedCount      int        `bun:"used_count,notnull"`
+	StartsAt       *time.Time `bun:"starts_at"`
+	EndsAt         *time.Time `bun:"ends_at"`
+	IsActive       bool       `bun:"is_active,notnull"`
+}
+
+type promotionUsageEntity struct {
+	bun.BaseModel `bun:"table:promotion_usages"`
+
+	PromotionID uuid.UUID `bun:"promotion_id,type:uuid,notnull"`
+	MemberID    uuid.UUID `bun:"member_id,type:uuid,notnull"`
+}
+
+type promotionDiscountResult struct {
+	PromotionID     uuid.UUID
+	DiscountAmount  decimal.Decimal
+	OriginalCode    string
+	NormalizedCode  string
+	ValidatedAmount decimal.Decimal
 }
 
 type UpdateOrderServiceRequest struct {
@@ -510,9 +543,35 @@ func (s *Service) CreateOrderService(ctx context.Context, req *CreateOrderServic
 	if err != nil {
 		return nil, err
 	}
-	discountAmount, netAmount, err := s.calculateOrderAmountsByMemberTier(ctx, req.MemberID, totalAmount)
+	tierDiscountAmount, tierNetAmount, err := s.calculateOrderAmountsByMemberTier(ctx, req.MemberID, totalAmount)
 	if err != nil {
 		return nil, err
+	}
+
+	promotionDiscountAmount := decimal.Zero
+	promotionCode := strings.ToUpper(strings.TrimSpace(req.PromotionCode))
+	if promotionCode != "" {
+		promotionDiscount, promoErr := s.calculatePromotionDiscount(ctx, req.MemberID, promotionCode, totalAmount)
+		if promoErr != nil {
+			return nil, promoErr
+		}
+
+		if promotionDiscount != nil {
+			promotionDiscountAmount = promotionDiscount.DiscountAmount
+			if promotionDiscountAmount.GreaterThan(tierNetAmount) {
+				promotionDiscountAmount = tierNetAmount
+			}
+		}
+	}
+
+	discountAmount := tierDiscountAmount.Add(promotionDiscountAmount).Round(2)
+	if discountAmount.GreaterThan(totalAmount) {
+		discountAmount = totalAmount
+	}
+
+	netAmount := totalAmount.Sub(discountAmount).Round(2)
+	if netAmount.IsNegative() {
+		netAmount = decimal.Zero
 	}
 
 	requireMemberPayment := req.PaymentID != uuid.Nil
@@ -563,6 +622,88 @@ func (s *Service) CreateOrderService(ctx context.Context, req *CreateOrderServic
 
 	span.AddEvent(`orders.svc.create.success`)
 	return data, nil
+}
+
+func (s *Service) calculatePromotionDiscount(ctx context.Context, memberID uuid.UUID, code string, orderAmount decimal.Decimal) (*promotionDiscountResult, error) {
+	normalizedCode := strings.ToUpper(strings.TrimSpace(code))
+	if normalizedCode == "" {
+		return nil, nil
+	}
+
+	promotion := new(promotionEntity)
+	if err := s.bunDB.DB().NewSelect().
+		Model(promotion).
+		Where("code = ?", normalizedCode).
+		Limit(1).
+		Scan(ctx); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, errors.New("promotion code is invalid")
+		}
+		return nil, err
+	}
+
+	now := time.Now().UTC()
+	if !promotion.IsActive {
+		return nil, errors.New("promotion is inactive")
+	}
+	if promotion.StartsAt != nil && now.Before(*promotion.StartsAt) {
+		return nil, errors.New("promotion is not active yet")
+	}
+	if promotion.EndsAt != nil && now.After(*promotion.EndsAt) {
+		return nil, errors.New("promotion has expired")
+	}
+
+	minimumOrderAmount := decimal.NewFromFloat(promotion.MinOrderAmount)
+	if orderAmount.LessThan(minimumOrderAmount) {
+		return nil, errors.New("order amount is below promotion minimum")
+	}
+
+	if promotion.UsageLimit != nil && promotion.UsedCount >= *promotion.UsageLimit {
+		return nil, errors.New("promotion usage limit reached")
+	}
+
+	if promotion.UsagePerMember != nil {
+		memberUsageCount, err := s.bunDB.DB().NewSelect().
+			Model((*promotionUsageEntity)(nil)).
+			Where("promotion_id = ?", promotion.ID).
+			Where("member_id = ?", memberID).
+			Count(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if memberUsageCount >= *promotion.UsagePerMember {
+			return nil, errors.New("promotion usage per member limit reached")
+		}
+	}
+
+	var discountAmount decimal.Decimal
+	if promotion.DiscountType == "percent" {
+		discountAmount = orderAmount.Mul(decimal.NewFromFloat(promotion.DiscountValue)).Div(decimal.NewFromInt(100))
+	} else {
+		discountAmount = decimal.NewFromFloat(promotion.DiscountValue)
+	}
+
+	if promotion.MaxDiscount != nil && *promotion.MaxDiscount > 0 {
+		maxDiscount := decimal.NewFromFloat(*promotion.MaxDiscount)
+		if discountAmount.GreaterThan(maxDiscount) {
+			discountAmount = maxDiscount
+		}
+	}
+
+	if discountAmount.GreaterThan(orderAmount) {
+		discountAmount = orderAmount
+	}
+	if discountAmount.IsNegative() {
+		discountAmount = decimal.Zero
+	}
+
+	return &promotionDiscountResult{
+		PromotionID:     promotion.ID,
+		DiscountAmount:  discountAmount.Round(2),
+		OriginalCode:    code,
+		NormalizedCode:  normalizedCode,
+		ValidatedAmount: orderAmount,
+	}, nil
 }
 
 func (s *Service) calculateOrderAmountsByMemberTier(ctx context.Context, memberID uuid.UUID, totalAmount decimal.Decimal) (decimal.Decimal, decimal.Decimal, error) {

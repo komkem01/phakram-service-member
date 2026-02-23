@@ -205,6 +205,22 @@ func apiAuth(r *gin.RouterGroup, mod *modules.Modules) {
 		auth.PATCH("/contact-messages/:id/read", mod.Contact.Ctl.MarkReadController)
 		auth.PATCH("/contact-messages/:id/unread", mod.Contact.Ctl.MarkUnreadController)
 
+		promotions := auth.Group("/promotions")
+		{
+			promotions.GET("/available", mod.Promotions.Ctl.ListAvailableForMemberController)
+			promotions.GET("/my", mod.Promotions.Ctl.ListMyController)
+			promotions.GET("/report/summary", mod.Promotions.Ctl.ReportSummaryController)
+			promotions.GET("/report/usages", mod.Promotions.Ctl.ListUsagesController)
+			promotions.POST("/:id/collect", mod.Promotions.Ctl.CollectController)
+			promotions.GET("/", mod.Promotions.Ctl.ListController)
+			promotions.GET("/:id", mod.Promotions.Ctl.InfoController)
+			promotions.POST("/", mod.Promotions.Ctl.CreateController)
+			promotions.PATCH("/:id", mod.Promotions.Ctl.UpdateController)
+			promotions.DELETE("/:id", mod.Promotions.Ctl.DeleteController)
+			promotions.POST("/validate", mod.Promotions.Ctl.ValidateController)
+			promotions.POST("/:id/use", mod.Promotions.Ctl.UseController)
+		}
+
 		members := auth.Group("/members")
 		{
 			members.GET("/", mod.Members.Ctl.ListController)
