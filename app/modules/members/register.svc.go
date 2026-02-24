@@ -43,6 +43,17 @@ func (s *Service) createRegisterService(ctx context.Context, req *RegisterServic
 	span, _ := utils.LogSpanFromContext(ctx)
 	span.AddEvent(`register.svc.create.start`)
 
+	normalizedEmail, err := normalizeAndValidateEmail(req.Email)
+	if err != nil {
+		return err
+	}
+	normalizedPhone, err := normalizeAndValidatePhone(req.Phone)
+	if err != nil {
+		return err
+	}
+	req.Email = normalizedEmail
+	req.Phone = normalizedPhone
+
 	memberID := uuid.New()
 	accountID := uuid.New()
 

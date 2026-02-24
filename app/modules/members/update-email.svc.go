@@ -3,7 +3,6 @@ package members
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	"phakram/app/modules/entities/ent"
@@ -23,9 +22,12 @@ func (s *Service) UpdateEmailService(ctx context.Context, id uuid.UUID, req *Upd
 	span.AddEvent(`members.svc.update_email.start`)
 
 	now := time.Now()
-	email := strings.TrimSpace(req.Email)
+	email, err := normalizeAndValidateEmail(req.Email)
+	if err != nil {
+		return err
+	}
 
-	err := s.bunDB.DB().RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
+	err = s.bunDB.DB().RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
 		member := new(ent.MemberEntity)
 		if err := tx.NewSelect().Model(member).Where("id = ?", id).Where("deleted_at IS NULL").Scan(ctx); err != nil {
 			return err

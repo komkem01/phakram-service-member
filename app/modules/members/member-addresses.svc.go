@@ -56,6 +56,12 @@ func (s *Service) CreateMemberAddressService(ctx context.Context, memberID uuid.
 	span, _ := utils.LogSpanFromContext(ctx)
 	span.AddEvent(`members.svc.address.create.start`)
 
+	normalizedPhone, err := normalizeAndValidatePhone(req.Phone)
+	if err != nil {
+		return err
+	}
+	req.Phone = normalizedPhone
+
 	now := time.Now()
 	address := &ent.MemberAddressEntity{
 		ID:            uuid.New(),
@@ -75,7 +81,7 @@ func (s *Service) CreateMemberAddressService(ctx context.Context, memberID uuid.
 		UpdatedAt:     now,
 	}
 
-	err := s.bunDB.DB().RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
+	err = s.bunDB.DB().RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
 		if _, err := tx.NewInsert().Model(address).Exec(ctx); err != nil {
 			return err
 		}
@@ -121,8 +127,14 @@ func (s *Service) UpdateMemberAddressService(ctx context.Context, memberID uuid.
 	span, _ := utils.LogSpanFromContext(ctx)
 	span.AddEvent(`members.svc.address.update.start`)
 
+	normalizedPhone, err := normalizeAndValidatePhone(req.Phone)
+	if err != nil {
+		return err
+	}
+	req.Phone = normalizedPhone
+
 	now := time.Now()
-	err := s.bunDB.DB().RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
+	err = s.bunDB.DB().RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
 		data := new(ent.MemberAddressEntity)
 		if err := tx.NewSelect().Model(data).Where("id = ?", addressID).Where("deleted_at IS NULL").Scan(ctx); err != nil {
 			return err

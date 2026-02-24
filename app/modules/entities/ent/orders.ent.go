@@ -42,4 +42,7 @@ type OrderEntity struct {
 	ShippingTrackingNo     string          `bun:"-" json:"shipping_tracking_no,omitempty"`
 	StatusSummary          string          `bun:"-" json:"status_summary,omitempty"`
 	StatusNextStep         string          `bun:"-" json:"status_next_step,omitempty"`
+	PromotionCode          string          `bun:"-" json:"promotion_code,omitempty"`
+	PromotionDiscount      decimal.Decimal `bun:"-" json:"promotion_discount_amount"`
+	TierDiscount           decimal.Decimal `bun:"-" json:"tier_discount_amount"`
 }

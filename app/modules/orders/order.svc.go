@@ -478,8 +478,51 @@ func (s *Service) InfoOrderService(ctx context.Context, orderID uuid.UUID, reque
 	}
 	data.PaymentAppealReason = paymentAppealReason
 
+	promotionCode, promotionDiscount, err := s.getOrderPromotionDiscountDetail(ctx, data.ID)
+	if err != nil {
+		return nil, err
+	}
+	data.PromotionCode = promotionCode
+	data.PromotionDiscount = promotionDiscount
+
+	tierDiscount := data.DiscountAmount.Sub(promotionDiscount)
+	if tierDiscount.IsNegative() {
+		tierDiscount = decimal.Zero
+	}
+	data.TierDiscount = tierDiscount
+
 	span.AddEvent(`orders.svc.info.success`)
 	return data, nil
+}
+
+func (s *Service) getOrderPromotionDiscountDetail(ctx context.Context, orderID uuid.UUID) (string, decimal.Decimal, error) {
+	type usageRow struct {
+		PromotionCode  string  `bun:"promotion_code"`
+		DiscountAmount float64 `bun:"discount_amount"`
+	}
+
+	row := new(usageRow)
+	err := s.bunDB.DB().NewSelect().
+		TableExpr("promotion_usages AS pu").
+		Join("JOIN promotions AS p ON p.id = pu.promotion_id").
+		ColumnExpr("p.code AS promotion_code").
+		ColumnExpr("pu.discount_amount").
+		Where("pu.order_id = ?", orderID).
+		OrderExpr("pu.used_at DESC").
+		Limit(1).
+		Scan(ctx, row)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", decimal.Zero, nil
+		}
+		return "", decimal.Zero, err
+	}
+
+	if row.DiscountAmount < 0 {
+		row.DiscountAmount = 0
+	}
+
+	return strings.TrimSpace(row.PromotionCode), decimal.NewFromFloat(row.DiscountAmount).Round(2), nil
 }
 
 func (s *Service) TimelineOrderService(ctx context.Context, orderID uuid.UUID, requesterID uuid.UUID, isAdmin bool) ([]*OrderTimelineItem, error) {

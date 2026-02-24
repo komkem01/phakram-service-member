@@ -66,6 +66,18 @@ var errorMappings = map[string]ResponseFunction{
 	"refund request requires payment submission": func(ctx *gin.Context, _ string, _ any, params ...map[string]string) error {
 		return ValidateFailed(ctx, "การขอคืนเงินทำได้หลังยืนยันการชำระเงินแล้วเท่านั้น", nil, params...)
 	},
+	"refund request is allowed only after payment approval": func(ctx *gin.Context, _ string, _ any, params ...map[string]string) error {
+		return ValidateFailed(ctx, "สามารถขอคืนเงินได้หลังการชำระเงินได้รับการอนุมัติแล้วเท่านั้น", nil, params...)
+	},
+	"refund request requires successful payment": func(ctx *gin.Context, _ string, _ any, params ...map[string]string) error {
+		return ValidateFailed(ctx, "สามารถขอคืนเงินได้เฉพาะรายการที่ชำระเงินสำเร็จแล้ว", nil, params...)
+	},
+	"only admin can review refund request": func(ctx *gin.Context, _ string, _ any, params ...map[string]string) error {
+		return Forbidden(ctx, "เฉพาะผู้ดูแลระบบเท่านั้นที่สามารถพิจารณาคำขอคืนเงิน", nil, params...)
+	},
+	"refund review requires successful payment": func(ctx *gin.Context, _ string, _ any, params ...map[string]string) error {
+		return ValidateFailed(ctx, "การพิจารณาคืนเงินต้องเป็นรายการที่ชำระเงินสำเร็จก่อน", nil, params...)
+	},
 	"refund reason is required": func(ctx *gin.Context, _ string, _ any, params ...map[string]string) error {
 		return ValidateFailed(ctx, "กรุณาระบุเหตุผลที่ต้องการขอคืนเงิน", nil, params...)
 	},

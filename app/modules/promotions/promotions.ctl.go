@@ -1,6 +1,8 @@
 package promotions
 
 import (
+	"fmt"
+	"strconv"
 	"strings"
 
 	"phakram/app/modules/auth"
@@ -52,7 +54,28 @@ type ValidatePromotionControllerRequest struct {
 
 type UsePromotionControllerRequest struct {
 	OrderID        *string `json:"order_id"`
-	DiscountAmount float64 `json:"discount_amount"`
+	DiscountAmount any     `json:"discount_amount"`
+}
+
+func parseDiscountAmount(raw any) (float64, error) {
+	switch value := raw.(type) {
+	case float64:
+		return value, nil
+	case float32:
+		return float64(value), nil
+	case int:
+		return float64(value), nil
+	case int64:
+		return float64(value), nil
+	case string:
+		parsed, err := strconv.ParseFloat(strings.TrimSpace(value), 64)
+		if err != nil {
+			return 0, err
+		}
+		return parsed, nil
+	default:
+		return 0, fmt.Errorf("unsupported discount_amount type")
+	}
 }
 
 type ListMemberPromotionsControllerRequest struct {
@@ -239,11 +262,17 @@ func (c *Controller) UseController(ctx *gin.Context) {
 		return
 	}
 
+	discountAmount, err := parseDiscountAmount(req.DiscountAmount)
+	if err != nil {
+		base.BadRequest(ctx, i18n.BadRequest, nil)
+		return
+	}
+
 	if err := c.svc.Use(ctx.Request.Context(), &UsePromotionServiceRequest{
 		PromotionID:    promotionID,
 		MemberID:       memberID,
 		OrderID:        req.OrderID,
-		DiscountAmount: req.DiscountAmount,
+		DiscountAmount: discountAmount,
 	}); err != nil {
 		base.HandleError(ctx, err)
 		return

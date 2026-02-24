@@ -34,7 +34,7 @@ type tokenHeader struct {
 	Typ string `json:"typ"`
 }
 
-const accessTokenTTL = 15 * time.Minute
+const accessTokenTTL = 30 * time.Minute
 const idleSessionTTL = 30 * time.Minute
 const refreshTokenTTL = 7 * 24 * time.Hour
 

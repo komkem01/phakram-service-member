@@ -62,7 +62,11 @@ func (s *Service) UpdateService(ctx context.Context, id uuid.UUID, req *UpdateSe
 			data.LastnameEn = strings.TrimSpace(*req.LastnameEn)
 		}
 		if req.Phone != nil {
-			data.Phone = strings.TrimSpace(*req.Phone)
+			normalizedPhone, err := normalizeAndValidatePhone(*req.Phone)
+			if err != nil {
+				return err
+			}
+			data.Phone = normalizedPhone
 		}
 		if req.Role != nil {
 			switch strings.TrimSpace(*req.Role) {

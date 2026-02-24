@@ -78,11 +78,23 @@ func (s *Service) UpdateOrder(ctx context.Context, order *ent.OrderEntity) error
 }
 
 func (s *Service) DeleteOrder(ctx context.Context, orderID uuid.UUID) error {
-	_, err := s.db.NewDelete().
-		Model(&ent.OrderEntity{}).
-		Where("id = ?", orderID).
-		Exec(ctx)
-	return err
+	return s.db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
+		if _, err := tx.NewDelete().
+			Model((*ent.OrderItemEntity)(nil)).
+			Where("order_id = ?", orderID).
+			Exec(ctx); err != nil {
+			return err
+		}
+
+		if _, err := tx.NewDelete().
+			Model(&ent.OrderEntity{}).
+			Where("id = ?", orderID).
+			Exec(ctx); err != nil {
+			return err
+		}
+
+		return nil
+	})
 }
 
 func orderTimeLocation() *time.Location {

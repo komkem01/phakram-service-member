@@ -45,11 +45,18 @@ func (c *Controller) TiersList(ctx *gin.Context) {
 	}
 	span.AddEvent(`tiers.ctl.list.callsvc`)
 
-	var resp []*ListTierControllerResponses
-	if err := utils.CopyNTimeToUnix(&resp, data); err != nil {
-		log.With(slog.Any(`body`, req)).Errf(`internal: %s`, err)
-		base.InternalServerError(ctx, err.Error(), nil)
-		return
+	resp := make([]*ListTierControllerResponses, 0, len(data))
+	for _, item := range data {
+		resp = append(resp, &ListTierControllerResponses{
+			ID:           item.ID,
+			NameTh:       item.NameTh,
+			NameEn:       item.NameEn,
+			MinSpending:  item.MinSpending.InexactFloat64(),
+			IsActive:     item.IsActive,
+			DiscountRate: item.DiscountRate.InexactFloat64(),
+			CreatedAt:    item.CreatedAt,
+			UpdatedAt:    item.UpdatedAt,
+		})
 	}
 
 	base.Paginate(ctx, resp, page)
