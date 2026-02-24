@@ -21,6 +21,7 @@ import (
 	"phakram/app/modules/products"
 	"phakram/app/modules/promotions"
 	"phakram/app/modules/provinces"
+	"phakram/app/modules/reviews"
 	"phakram/app/modules/sentry"
 	"phakram/app/modules/specs"
 	"phakram/app/modules/statuses"
@@ -71,6 +72,7 @@ type Modules struct {
 	Payments           *payments.Module
 	Carts              *carts.Module
 	Promotions         *promotions.Module
+	Reviews            *reviews.Module
 }
 
 func modulesInit() {
@@ -138,6 +140,12 @@ func modulesInit() {
 	paymentsMod := payments.New(db.Svc, entitiesMod.Svc)
 	cartsMod := carts.New(db.Svc, entitiesMod.Svc, entitiesMod.Svc)
 	promotionsMod := promotions.New(db.Svc)
+	reviewsMod := reviews.New(db.Svc, reviews.SupabaseConfig{
+		URL:            conf.Supabase.URL,
+		ServiceRoleKey: conf.Supabase.ServiceRoleKey,
+		PublicBucket:   conf.Supabase.PublicBucket,
+		PrivateBucket:  conf.Supabase.PrivateBucket,
+	})
 	mod = &Modules{
 		Conf:               confMod,
 		Specs:              specsMod,
@@ -170,6 +178,7 @@ func modulesInit() {
 		Payments:           paymentsMod,
 		Carts:              cartsMod,
 		Promotions:         promotionsMod,
+		Reviews:            reviewsMod,
 	}
 
 	log.Infof("all modules initialized")

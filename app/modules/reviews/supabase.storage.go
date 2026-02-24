@@ -1,4 +1,4 @@
-package orders
+package reviews
 
 import (
 	"bytes"
@@ -16,7 +16,7 @@ import (
 	"github.com/google/uuid"
 )
 
-const maxSlipFileSizeBytes = 5 * 1024 * 1024
+const maxReviewImageFileSizeBytes = 5 * 1024 * 1024
 
 type supabaseStorageClient struct {
 	url           string
@@ -26,7 +26,7 @@ type supabaseStorageClient struct {
 	httpClient    *http.Client
 }
 
-type uploadedSlipObject struct {
+type uploadedReviewImage struct {
 	Path     string
 	FileName string
 	MIMEType string
@@ -43,38 +43,64 @@ func newSupabaseStorageClient(conf SupabaseConfig) *supabaseStorageClient {
 	}
 }
 
-func (c *supabaseStorageClient) enabledForPrivate() bool {
-	return c != nil && c.url != "" && c.serviceKey != "" && c.privateBucket != ""
+func (c *supabaseStorageClient) enabledForPublic() bool {
+	return c != nil && c.url != "" && c.serviceKey != "" && c.publicBucket != ""
 }
 
-func (c *supabaseStorageClient) UploadPaymentSlip(ctx context.Context, orderID uuid.UUID, paymentID uuid.UUID, fileName string, encoded string) (*uploadedSlipObject, error) {
-	if !c.enabledForPrivate() {
-		return nil, errors.New("supabase storage is not configured")
+func (c *supabaseStorageClient) ResolveObjectURL(storedPath string) string {
+	trimmed := strings.TrimSpace(storedPath)
+	if trimmed == "" {
+		return ""
+	}
+	if strings.HasPrefix(trimmed, "http://") || strings.HasPrefix(trimmed, "https://") || strings.HasPrefix(trimmed, "data:") {
+		return trimmed
+	}
+	if c == nil || c.url == "" || c.publicBucket == "" {
+		return trimmed
 	}
 
-	data, mimeType, err := decodeBase64Image(encoded)
+	parts := strings.SplitN(trimmed, "/", 2)
+	if len(parts) != 2 {
+		return trimmed
+	}
+	if parts[0] != c.publicBucket {
+		return trimmed
+	}
+	objectPath := strings.TrimLeft(parts[1], "/")
+	if objectPath == "" {
+		return trimmed
+	}
+
+	return fmt.Sprintf("%s/storage/v1/object/public/%s/%s", c.url, c.publicBucket, objectPath)
+}
+
+func (c *supabaseStorageClient) UploadReviewImage(ctx context.Context, productID uuid.UUID, reviewID uuid.UUID, fileName string, encoded string) (*uploadedReviewImage, error) {
+	if !c.enabledForPublic() {
+		return nil, errors.New("supabase public storage is not configured")
+	}
+
+	data, mimeType, err := decodeReviewBase64Image(encoded)
 	if err != nil {
 		return nil, err
 	}
 	if len(data) == 0 {
-		return nil, errors.New("slip image is empty")
+		return nil, errors.New("review image is empty")
 	}
-	if len(data) > maxSlipFileSizeBytes {
-		return nil, errors.New("slip image exceeds 5 MB")
+	if len(data) > maxReviewImageFileSizeBytes {
+		return nil, errors.New("review image exceeds 5 MB")
+	}
+	if !isAllowedReviewImageMIME(mimeType) {
+		return nil, fmt.Errorf("unsupported review image type: %s", mimeType)
 	}
 
-	if !isAllowedImageMIME(mimeType) {
-		return nil, fmt.Errorf("unsupported slip image type: %s", mimeType)
-	}
-
-	ext := extensionByMIME(mimeType)
+	ext := extensionByReviewMIME(mimeType)
 	safeName := strings.TrimSpace(fileName)
 	if safeName == "" {
-		safeName = fmt.Sprintf("payment-slip-%s%s", orderID.String(), ext)
+		safeName = fmt.Sprintf("review-%s%s", reviewID.String(), ext)
 	}
 
-	objectPath := fmt.Sprintf("slips/%s/%s-%d%s", orderID.String(), paymentID.String(), time.Now().UnixMilli(), ext)
-	endpoint := fmt.Sprintf("%s/storage/v1/object/%s/%s", c.url, c.privateBucket, objectPath)
+	objectPath := fmt.Sprintf("reviews/%s/%s/%s-%d%s", productID.String(), reviewID.String(), uuid.NewString(), time.Now().UnixMilli(), ext)
+	endpoint := fmt.Sprintf("%s/storage/v1/object/%s/%s", c.url, c.publicBucket, objectPath)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(data))
 	if err != nil {
@@ -96,18 +122,18 @@ func (c *supabaseStorageClient) UploadPaymentSlip(ctx context.Context, orderID u
 		return nil, fmt.Errorf("supabase upload failed: %s", strings.TrimSpace(string(body)))
 	}
 
-	return &uploadedSlipObject{
-		Path:     fmt.Sprintf("%s/%s", c.privateBucket, objectPath),
+	return &uploadedReviewImage{
+		Path:     fmt.Sprintf("%s/%s", c.publicBucket, objectPath),
 		FileName: safeName,
 		MIMEType: mimeType,
 		Size:     int64(len(data)),
 	}, nil
 }
 
-func decodeBase64Image(input string) ([]byte, string, error) {
+func decodeReviewBase64Image(input string) ([]byte, string, error) {
 	raw := strings.TrimSpace(input)
 	if raw == "" {
-		return nil, "", errors.New("slip image is required")
+		return nil, "", errors.New("review image is required")
 	}
 
 	mimeType := ""
@@ -118,7 +144,7 @@ func decodeBase64Image(input string) ([]byte, string, error) {
 		}
 		header := parts[0]
 		if !strings.Contains(header, ";base64") {
-			return nil, "", errors.New("slip image must be base64 data url")
+			return nil, "", errors.New("review image must be base64 data url")
 		}
 		mimeType = strings.TrimPrefix(strings.SplitN(header, ";", 2)[0], "data:")
 		raw = parts[1]
@@ -128,7 +154,7 @@ func decodeBase64Image(input string) ([]byte, string, error) {
 	if err != nil {
 		decoded, err = base64.RawStdEncoding.DecodeString(raw)
 		if err != nil {
-			return nil, "", errors.New("invalid base64 slip image")
+			return nil, "", errors.New("invalid base64 review image")
 		}
 	}
 
@@ -138,10 +164,11 @@ func decodeBase64Image(input string) ([]byte, string, error) {
 	if mediaType, _, err := mime.ParseMediaType(mimeType); err == nil {
 		mimeType = mediaType
 	}
+
 	return decoded, strings.ToLower(strings.TrimSpace(mimeType)), nil
 }
 
-func isAllowedImageMIME(mimeType string) bool {
+func isAllowedReviewImageMIME(mimeType string) bool {
 	switch strings.ToLower(strings.TrimSpace(mimeType)) {
 	case "image/jpeg", "image/png", "image/webp":
 		return true
@@ -150,7 +177,7 @@ func isAllowedImageMIME(mimeType string) bool {
 	}
 }
 
-func extensionByMIME(mimeType string) string {
+func extensionByReviewMIME(mimeType string) string {
 	switch strings.ToLower(strings.TrimSpace(mimeType)) {
 	case "image/jpeg":
 		return ".jpg"

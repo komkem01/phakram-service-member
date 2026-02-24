@@ -123,6 +123,33 @@ var errorMappings = map[string]ResponseFunction{
 	"product stock not found": func(ctx *gin.Context, _ string, _ any, params ...map[string]string) error {
 		return ValidateFailed(ctx, "ไม่พบสต็อกสินค้า", nil, params...)
 	},
+	"review can be created only for completed orders": func(ctx *gin.Context, _ string, _ any, params ...map[string]string) error {
+		return ValidateFailed(ctx, "สามารถรีวิวได้เฉพาะสินค้าที่ซื้อสำเร็จแล้ว", nil, params...)
+	},
+	"review already exists for this order item": func(ctx *gin.Context, _ string, _ any, params ...map[string]string) error {
+		return ValidateFailed(ctx, "รายการสินค้านี้ถูกรีวิวแล้ว", nil, params...)
+	},
+	"rating must be between 1 and 5": func(ctx *gin.Context, _ string, _ any, params ...map[string]string) error {
+		return ValidateFailed(ctx, "คะแนนรีวิวต้องอยู่ระหว่าง 1 ถึง 5", nil, params...)
+	},
+	"review comment is required": func(ctx *gin.Context, _ string, _ any, params ...map[string]string) error {
+		return ValidateFailed(ctx, "กรุณากรอกข้อความรีวิว", nil, params...)
+	},
+	"review not found": func(ctx *gin.Context, _ string, _ any, params ...map[string]string) error {
+		return ValidateFailed(ctx, "ไม่พบรีวิว", nil, params...)
+	},
+	"review images must not exceed 3 items": func(ctx *gin.Context, _ string, _ any, params ...map[string]string) error {
+		return ValidateFailed(ctx, "รูปรีวิวแนบได้สูงสุด 3 รูป", nil, params...)
+	},
+	"review image url is invalid": func(ctx *gin.Context, _ string, _ any, params ...map[string]string) error {
+		return ValidateFailed(ctx, "ลิงก์รูปรีวิวไม่ถูกต้อง", nil, params...)
+	},
+	"review edit window expired": func(ctx *gin.Context, _ string, _ any, params ...map[string]string) error {
+		return ValidateFailed(ctx, "รีวิวนี้หมดเวลาแก้ไขแล้ว", nil, params...)
+	},
+	"supabase public storage is not configured": func(ctx *gin.Context, _ string, _ any, params ...map[string]string) error {
+		return ValidateFailed(ctx, "ระบบอัปโหลดรูปภาพยังไม่พร้อมใช้งาน", nil, params...)
+	},
 	"default tier not found": func(ctx *gin.Context, _ string, _ any, params ...map[string]string) error {
 		return ValidateFailed(ctx, "ไม่พบระดับทั่วไป", nil, params...)
 	},

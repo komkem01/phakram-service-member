@@ -108,6 +108,7 @@ func apiSystem(r *gin.RouterGroup, mod *modules.Modules) {
 		{
 			products.GET("/", mod.Products.Ctl.ProductsList)
 			products.GET("/:id", mod.Products.Ctl.ProductsInfo)
+			products.GET("/:id/reviews", mod.Reviews.Ctl.ListProductPublicController)
 			products.GET("/:id/images", mod.Products.Ctl.ListProductImagesController)
 			products.POST("/", mod.Products.Ctl.CreateProductController)
 			products.POST("/:id/images", mod.Products.Ctl.UploadProductImageController)
@@ -219,6 +220,15 @@ func apiAuth(r *gin.RouterGroup, mod *modules.Modules) {
 			promotions.DELETE("/:id", mod.Promotions.Ctl.DeleteController)
 			promotions.POST("/validate", mod.Promotions.Ctl.ValidateController)
 			promotions.POST("/:id/use", mod.Promotions.Ctl.UseController)
+		}
+
+		reviews := auth.Group("/reviews")
+		{
+			reviews.GET("/", mod.Reviews.Ctl.ListAdminController)
+			reviews.GET("/eligible", mod.Reviews.Ctl.ListEligibleController)
+			reviews.POST("/", mod.Reviews.Ctl.CreateController)
+			reviews.PATCH("/:id", mod.Reviews.Ctl.UpdateController)
+			reviews.PATCH("/:id/visibility", mod.Reviews.Ctl.UpdateVisibilityController)
 		}
 
 		members := auth.Group("/members")
