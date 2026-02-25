@@ -169,8 +169,8 @@ func (s *Service) loadReviewImageMap(ctx context.Context, reviewIDs []uuid.UUID)
 
 	for _, item := range rows {
 		resolved := strings.TrimSpace(item.ImageURL)
-		if s.supabase != nil {
-			resolved = s.supabase.ResolveObjectURL(resolved)
+		if s.railwayStorage != nil {
+			resolved = s.railwayStorage.ResolveObjectURL(resolved)
 		}
 		imageMap[item.ReviewID] = append(imageMap[item.ReviewID], resolved)
 	}
@@ -188,11 +188,11 @@ func (s *Service) toStoredReviewImageURLs(ctx context.Context, productID uuid.UU
 
 		lowerValue := strings.ToLower(trimmed)
 		if strings.HasPrefix(lowerValue, "data:image/") {
-			if s.supabase == nil || !s.supabase.enabledForPublic() {
-				return nil, errors.New("supabase public storage is not configured")
+			if s.railwayStorage == nil || !s.railwayStorage.enabledForPublic() {
+				return nil, errors.New("railway public storage is not configured")
 			}
 
-			uploaded, err := s.supabase.UploadReviewImage(ctx, productID, reviewID, "", trimmed)
+			uploaded, err := s.railwayStorage.UploadReviewImage(ctx, productID, reviewID, "", trimmed)
 			if err != nil {
 				return nil, err
 			}

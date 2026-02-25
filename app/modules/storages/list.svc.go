@@ -18,12 +18,12 @@ func (s *Service) ListService(ctx context.Context, refID uuid.UUID) ([]*ent.Stor
 		return nil, err
 	}
 
-	if s.supabase != nil {
+	if s.railwayStorage != nil {
 		for _, item := range data {
 			if item == nil {
 				continue
 			}
-			resolved, resolveErr := s.supabase.ResolveObjectURL(ctx, item.FilePath)
+			resolved, resolveErr := s.railwayStorage.ResolveObjectURL(ctx, item.FilePath)
 			if resolveErr == nil && strings.TrimSpace(resolved) != "" {
 				item.FilePath = resolved
 			}

@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"sort"
@@ -25,8 +26,8 @@ type Client struct {
 }
 
 func NewClient(endpointURL string, accessKeyID string, secretAccessKey string, region string, timeout time.Duration) *Client {
-	trimmedEndpoint := strings.TrimRight(strings.TrimSpace(endpointURL), "/")
-	trimmedRegion := strings.TrimSpace(region)
+	trimmedEndpoint := strings.TrimRight(cleanEnvValue(endpointURL), "/")
+	trimmedRegion := cleanEnvValue(region)
 	if trimmedRegion == "" {
 		trimmedRegion = "auto"
 	}
@@ -37,10 +38,17 @@ func NewClient(endpointURL string, accessKeyID string, secretAccessKey string, r
 	return &Client{
 		endpointURL:     trimmedEndpoint,
 		region:          trimmedRegion,
-		accessKeyID:     strings.TrimSpace(accessKeyID),
-		secretAccessKey: strings.TrimSpace(secretAccessKey),
+		accessKeyID:     cleanEnvValue(accessKeyID),
+		secretAccessKey: cleanEnvValue(secretAccessKey),
 		httpClient:      &http.Client{Timeout: timeout},
 	}
+}
+
+func cleanEnvValue(value string) string {
+	trimmed := strings.TrimSpace(value)
+	trimmed = strings.TrimSuffix(trimmed, "\r")
+	trimmed = strings.Trim(trimmed, "\"'")
+	return strings.TrimSpace(trimmed)
 }
 
 func (c *Client) Enabled() bool {
@@ -77,7 +85,11 @@ func (c *Client) PublicObjectURL(bucket string, objectPath string) string {
 	if trimmedBucket == "" || trimmedObject == "" {
 		return strings.TrimSpace(objectPath)
 	}
-	return c.endpointURL + buildCanonicalURI(trimmedBucket, trimmedObject)
+	target, err := c.buildTarget(trimmedBucket, trimmedObject)
+	if err != nil {
+		return strings.TrimSpace(objectPath)
+	}
+	return target.requestURL
 }
 
 func (c *Client) PutObject(ctx context.Context, bucket string, objectPath string, contentType string, payload []byte) error {
@@ -91,13 +103,17 @@ func (c *Client) PutObject(ctx context.Context, bucket string, objectPath string
 		return fmt.Errorf("bucket and object path are required")
 	}
 
-	canonicalURI := buildCanonicalURI(trimmedBucket, trimmedObject)
-	requestURL := c.endpointURL + canonicalURI
+	target, err := c.buildTarget(trimmedBucket, trimmedObject)
+	if err != nil {
+		return err
+	}
+	canonicalURI := target.canonicalURI
+	requestURL := target.requestURL
 	payloadHash := sha256Hex(payload)
 	now := time.Now().UTC()
 	dateStamp := now.Format("20060102")
 	amzDate := now.Format("20060102T150405Z")
-	host := endpointHost(c.endpointURL)
+	host := target.host
 
 	headers := map[string]string{
 		"host":                 host,
@@ -130,10 +146,25 @@ func (c *Client) PutObject(ctx context.Context, bucket string, objectPath string
 
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
 		body, _ := io.ReadAll(io.LimitReader(response.Body, 1024))
-		return fmt.Errorf("object storage upload failed: %s", strings.TrimSpace(string(body)))
+		trimmedBody := strings.TrimSpace(string(body))
+		if strings.Contains(trimmedBody, "InvalidAccessKeyId") {
+			return fmt.Errorf("object storage upload failed: %s (endpoint=%s, region=%s, access_key_id=%s)", trimmedBody, c.endpointURL, c.region, maskAccessKeyID(c.accessKeyID))
+		}
+		return fmt.Errorf("object storage upload failed: %s", trimmedBody)
 	}
 
 	return nil
+}
+
+func maskAccessKeyID(value string) string {
+	trimmed := cleanEnvValue(value)
+	if trimmed == "" {
+		return "<empty>"
+	}
+	if len(trimmed) <= 8 {
+		return "****"
+	}
+	return trimmed[:4] + "..." + trimmed[len(trimmed)-4:]
 }
 
 func (c *Client) DeleteObject(ctx context.Context, bucket string, objectPath string) error {
@@ -147,13 +178,17 @@ func (c *Client) DeleteObject(ctx context.Context, bucket string, objectPath str
 		return nil
 	}
 
-	canonicalURI := buildCanonicalURI(trimmedBucket, trimmedObject)
-	requestURL := c.endpointURL + canonicalURI
+	target, err := c.buildTarget(trimmedBucket, trimmedObject)
+	if err != nil {
+		return err
+	}
+	canonicalURI := target.canonicalURI
+	requestURL := target.requestURL
 	payloadHash := sha256Hex(nil)
 	now := time.Now().UTC()
 	dateStamp := now.Format("20060102")
 	amzDate := now.Format("20060102T150405Z")
-	host := endpointHost(c.endpointURL)
+	host := target.host
 
 	headers := map[string]string{
 		"host":                 host,
@@ -213,8 +248,12 @@ func (c *Client) PresignGetObject(bucket string, objectPath string, expires time
 	now := time.Now().UTC()
 	dateStamp := now.Format("20060102")
 	amzDate := now.Format("20060102T150405Z")
-	host := endpointHost(c.endpointURL)
-	canonicalURI := buildCanonicalURI(trimmedBucket, trimmedObject)
+	target, err := c.buildTarget(trimmedBucket, trimmedObject)
+	if err != nil {
+		return "", err
+	}
+	host := target.host
+	canonicalURI := target.canonicalURI
 	credentialScope := c.credentialScope(dateStamp)
 
 	queryParams := map[string]string{
@@ -230,7 +269,74 @@ func (c *Client) PresignGetObject(bucket string, objectPath string, expires time
 	canonicalRequest := buildCanonicalRequest(http.MethodGet, canonicalURI, canonicalQuery, headers, "host", "UNSIGNED-PAYLOAD")
 	signature := c.signature(dateStamp, amzDate, canonicalRequest)
 
-	return c.endpointURL + canonicalURI + "?" + canonicalQuery + "&X-Amz-Signature=" + signature, nil
+	return target.requestURL + "?" + canonicalQuery + "&X-Amz-Signature=" + signature, nil
+}
+
+type requestTarget struct {
+	host         string
+	canonicalURI string
+	requestURL   string
+}
+
+func (c *Client) buildTarget(bucket string, objectPath string) (*requestTarget, error) {
+	parsed, err := url.Parse(c.endpointURL)
+	if err != nil {
+		return nil, err
+	}
+
+	basePath := strings.TrimSuffix(parsed.Path, "/")
+	objectURI := buildCanonicalObjectURI(objectPath)
+
+	hostname := parsed.Hostname()
+	port := parsed.Port()
+	virtualHosted := shouldUseVirtualHostedStyle(hostname)
+
+	hostnameForRequest := hostname
+	canonicalURI := objectURI
+	if virtualHosted {
+		hostnameForRequest = bucket + "." + hostname
+	} else {
+		canonicalURI = buildCanonicalURI(bucket, objectPath)
+	}
+
+	hostForHeader := hostnameForRequest
+	if port != "" {
+		hostForHeader = hostForHeader + ":" + port
+	}
+
+	uriWithBase := canonicalURI
+	if basePath != "" {
+		uriWithBase = strings.TrimSuffix(basePath, "/") + canonicalURI
+	}
+
+	u := &url.URL{
+		Scheme: parsed.Scheme,
+		Host:   hostForHeader,
+		Path:   uriWithBase,
+	}
+
+	return &requestTarget{
+		host:         hostForHeader,
+		canonicalURI: uriWithBase,
+		requestURL:   u.String(),
+	}, nil
+}
+
+func shouldUseVirtualHostedStyle(hostname string) bool {
+	trimmed := strings.TrimSpace(strings.ToLower(hostname))
+	if trimmed == "" {
+		return false
+	}
+	if strings.Contains(trimmed, "storageapi.dev") {
+		return true
+	}
+	if net.ParseIP(trimmed) != nil {
+		return false
+	}
+	if trimmed == "localhost" || strings.HasSuffix(trimmed, ".localhost") {
+		return false
+	}
+	return false
 }
 
 func (c *Client) signature(dateStamp string, amzDate string, canonicalRequest string) string {
@@ -319,6 +425,21 @@ func endpointHost(endpoint string) string {
 		return strings.TrimSpace(endpoint)
 	}
 	return parsed.Host
+}
+
+func buildCanonicalObjectURI(objectPath string) string {
+	segments := make([]string, 0, 8)
+	for _, segment := range strings.Split(strings.Trim(strings.TrimSpace(objectPath), "/"), "/") {
+		trimmed := strings.TrimSpace(segment)
+		if trimmed == "" {
+			continue
+		}
+		segments = append(segments, awsPathEncode(trimmed))
+	}
+	if len(segments) == 0 {
+		return "/"
+	}
+	return "/" + strings.Join(segments, "/")
 }
 
 func buildCanonicalURI(bucket string, objectPath string) string {

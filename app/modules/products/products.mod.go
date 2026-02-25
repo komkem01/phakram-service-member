@@ -13,7 +13,7 @@ type Module struct {
 	Ctl *Controller
 }
 
-type SupabaseConfig struct {
+type RailwayConfig struct {
 	URL            string
 	ServiceRoleKey string
 	PublicBucket   string
@@ -22,11 +22,11 @@ type SupabaseConfig struct {
 
 type (
 	Service struct {
-		tracer      trace.Tracer
-		bunDB       *database.DatabaseService
-		db          entitiesinf.ProductEntity
-		supabase    *supabaseStorageClient
-		productFile entitiesinf.ProductFileEntity
+		tracer         trace.Tracer
+		bunDB          *database.DatabaseService
+		db             entitiesinf.ProductEntity
+		railwayStorage *railwayStorageClient
+		productFile    entitiesinf.ProductFileEntity
 	}
 	Controller struct {
 		tracer trace.Tracer
@@ -35,26 +35,26 @@ type (
 )
 
 type Options struct {
-	tracer       trace.Tracer
-	bunDB        *database.DatabaseService
-	db           entitiesinf.ProductEntity
-	supabaseConf SupabaseConfig
-	productFile  entitiesinf.ProductFileEntity
+	tracer      trace.Tracer
+	bunDB       *database.DatabaseService
+	db          entitiesinf.ProductEntity
+	railwayConf RailwayConfig
+	productFile entitiesinf.ProductFileEntity
 }
 
 func New(
 	bunDB *database.DatabaseService,
 	db entitiesinf.ProductEntity,
 	productFile entitiesinf.ProductFileEntity,
-	supabaseConf SupabaseConfig,
+	railwayConf RailwayConfig,
 ) *Module {
 	tracer := otel.Tracer("products_module")
 	svc := newService(&Options{
-		tracer:       tracer,
-		bunDB:        bunDB,
-		db:           db,
-		productFile:  productFile,
-		supabaseConf: supabaseConf,
+		tracer:      tracer,
+		bunDB:       bunDB,
+		db:          db,
+		productFile: productFile,
+		railwayConf: railwayConf,
 	})
 	return &Module{
 		Svc: svc,
@@ -64,11 +64,11 @@ func New(
 
 func newService(opt *Options) *Service {
 	return &Service{
-		tracer:      opt.tracer,
-		bunDB:       opt.bunDB,
-		db:          opt.db,
-		productFile: opt.productFile,
-		supabase:    newSupabaseStorageClient(opt.supabaseConf),
+		tracer:         opt.tracer,
+		bunDB:          opt.bunDB,
+		db:             opt.db,
+		productFile:    opt.productFile,
+		railwayStorage: newRailwayStorageClient(opt.railwayConf),
 	}
 }
 

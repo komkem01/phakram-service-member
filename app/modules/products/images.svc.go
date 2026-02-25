@@ -93,8 +93,8 @@ func (s *Service) ListProductImagesService(ctx context.Context, productID uuid.U
 			continue
 		}
 		resolvedPath := strings.TrimSpace(row.FilePath)
-		if s.supabase != nil {
-			resolvedPath = s.supabase.ResolveObjectURL(row.FilePath)
+		if s.railwayStorage != nil {
+			resolvedPath = s.railwayStorage.ResolveObjectURL(row.FilePath)
 		}
 		items = append(items, &ProductImageItem{
 			ID:        row.StorageID,
@@ -115,15 +115,15 @@ func (s *Service) UploadProductImageService(ctx context.Context, productID uuid.
 	if _, err := s.db.GetProductByID(ctx, productID); err != nil {
 		return nil, err
 	}
-	if s.supabase == nil || !s.supabase.enabledPublic() {
+	if s.railwayStorage == nil || !s.railwayStorage.enabledPublic() {
 		missing := []string{"client"}
-		if s.supabase != nil {
-			missing = s.supabase.missingPublicConfigFields()
+		if s.railwayStorage != nil {
+			missing = s.railwayStorage.missingPublicConfigFields()
 		}
-		return nil, fmt.Errorf("supabase public storage is not configured (missing: %s)", strings.Join(missing, ","))
+		return nil, fmt.Errorf("railway public storage is not configured (missing: %s)", strings.Join(missing, ","))
 	}
 
-	uploaded, err := s.supabase.UploadProductImage(ctx, productID, strings.TrimSpace(req.FileName), strings.TrimSpace(req.FileBase64))
+	uploaded, err := s.railwayStorage.UploadProductImage(ctx, productID, strings.TrimSpace(req.FileName), strings.TrimSpace(req.FileBase64))
 	if err != nil {
 		return nil, err
 	}
@@ -173,7 +173,7 @@ func (s *Service) UploadProductImageService(ctx context.Context, productID uuid.
 		ID:        storageID,
 		FileID:    storageID,
 		FileName:  uploaded.FileName,
-		FilePath:  s.supabase.ResolveObjectURL(uploaded.Path),
+		FilePath:  s.railwayStorage.ResolveObjectURL(uploaded.Path),
 		FileType:  uploaded.MIMEType,
 		FileSize:  uploaded.Size,
 		CreatedAt: now.Format("2006-01-02T15:04:05Z07:00"),
@@ -216,8 +216,8 @@ func (s *Service) loadProductPrimaryImageMap(ctx context.Context, productIDs []u
 			continue
 		}
 		resolved := strings.TrimSpace(row.FilePath)
-		if s.supabase != nil {
-			resolved = s.supabase.ResolveObjectURL(row.FilePath)
+		if s.railwayStorage != nil {
+			resolved = s.railwayStorage.ResolveObjectURL(row.FilePath)
 		}
 		if resolved != "" {
 			imageMap[row.ProductID] = resolved
@@ -309,9 +309,9 @@ func (s *Service) DeleteProductImageService(ctx context.Context, productID uuid.
 		return err
 	}
 
-	if s.supabase != nil {
-		if removeErr := s.supabase.DeleteProductImageObject(ctx, strings.TrimSpace(row.FilePath)); removeErr != nil {
-			log.With(slog.Any("product_id", productID), slog.Any("image_id", imageID)).Errf("products.svc.images.delete.supabase: %s", removeErr)
+	if s.railwayStorage != nil {
+		if removeErr := s.railwayStorage.DeleteProductImageObject(ctx, strings.TrimSpace(row.FilePath)); removeErr != nil {
+			log.With(slog.Any("product_id", productID), slog.Any("image_id", imageID)).Errf("products.svc.images.delete.railway: %s", removeErr)
 		}
 	}
 

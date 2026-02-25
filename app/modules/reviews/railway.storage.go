@@ -17,8 +17,9 @@ import (
 )
 
 const maxReviewImageFileSizeBytes = 5 * 1024 * 1024
+const publicReviewImageSignedURLExpiresInHours = 24
 
-type supabaseStorageClient struct {
+type railwayStorageClient struct {
 	s3            *s3compat.Client
 	publicBucket  string
 	reviewBucket  string
@@ -32,39 +33,39 @@ type uploadedReviewImage struct {
 	Size     int64
 }
 
-func newSupabaseStorageClient(conf SupabaseConfig) *supabaseStorageClient {
+func newRailwayStorageClient(conf RailwayConfig) *railwayStorageClient {
 	endpointURL := strings.TrimRight(strings.TrimSpace(conf.URL), "/")
 	if endpointURL == "" {
-		endpointURL = strings.TrimRight(firstNonEmptyEnv("OBJECT_ENDPOINT_URL", "SUPABASE_URL"), "/")
+		endpointURL = strings.TrimRight(firstNonEmptyEnv("OBJECT_ENDPOINT_URL"), "/")
 	}
 
 	secretAccessKey := strings.TrimSpace(conf.ServiceRoleKey)
 	if secretAccessKey == "" {
-		secretAccessKey = firstNonEmptyEnv("OBJECT_SECRET_ACCESS_KEY", "SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_SERVICE_KEY", "SUPABASE_ANON_KEY")
+		secretAccessKey = firstNonEmptyEnv("OBJECT_SECRET_ACCESS_KEY", "AWS_SECRET_ACCESS_KEY", "S3_SECRET_ACCESS_KEY", "RAILWAY_STORAGE_SECRET_ACCESS_KEY", "RAILWAY_SECRET_ACCESS_KEY", "SECRET_ACCESS_KEY")
 	}
 
-	accessKeyID := firstNonEmptyEnv("OBJECT_ACCESS_KEY_ID")
+	accessKeyID := firstNonEmptyEnv("OBJECT_ACCESS_KEY_ID", "AWS_ACCESS_KEY_ID", "S3_ACCESS_KEY_ID", "RAILWAY_STORAGE_ACCESS_KEY_ID", "RAILWAY_ACCESS_KEY_ID", "ACCESS_KEY_ID")
 	region := firstNonEmptyEnv("OBJECT_REGION", "AWS_REGION", "AWS_DEFAULT_REGION")
 
 	publicBucket := strings.TrimSpace(conf.PublicBucket)
 	if publicBucket == "" {
-		publicBucket = firstNonEmptyEnv("OBJECT_PUBLIC_BUCKET", "SUPABASE_PUBLIC_BUCKET")
+		publicBucket = firstNonEmptyEnv("OBJECT_PUBLIC_BUCKET")
 	}
 
 	privateBucket := strings.TrimSpace(conf.PrivateBucket)
 	if privateBucket == "" {
-		privateBucket = firstNonEmptyEnv("OBJECT_PRIVATE_BUCKET", "SUPABASE_PRIVATE_BUCKET")
+		privateBucket = firstNonEmptyEnv("OBJECT_PRIVATE_BUCKET")
 	}
 
 	reviewBucket := strings.TrimSpace(conf.ReviewBucket)
 	if reviewBucket == "" {
-		reviewBucket = firstNonEmptyEnv("OBJECT_REVIEW_BUCKET", "SUPABASE_REVIEW_BUCKET")
+		reviewBucket = firstNonEmptyEnv("OBJECT_REVIEW_BUCKET")
 	}
 	if reviewBucket == "" {
 		reviewBucket = publicBucket
 	}
 
-	return &supabaseStorageClient{
+	return &railwayStorageClient{
 		s3:            s3compat.NewClient(endpointURL, accessKeyID, secretAccessKey, region, 20*time.Second),
 		publicBucket:  publicBucket,
 		reviewBucket:  reviewBucket,
@@ -85,11 +86,11 @@ func firstNonEmptyEnv(names ...string) string {
 	return ""
 }
 
-func (c *supabaseStorageClient) enabledForPublic() bool {
+func (c *railwayStorageClient) enabledForPublic() bool {
 	return c != nil && c.s3 != nil && c.s3.Enabled() && c.reviewBucket != ""
 }
 
-func (c *supabaseStorageClient) ResolveObjectURL(storedPath string) string {
+func (c *railwayStorageClient) ResolveObjectURL(storedPath string) string {
 	trimmed := strings.TrimSpace(storedPath)
 	if trimmed == "" {
 		return ""
@@ -110,13 +111,17 @@ func (c *supabaseStorageClient) ResolveObjectURL(storedPath string) string {
 	if objectPath == "" {
 		return trimmed
 	}
+	presignedURL, err := c.s3.PresignGetObject(bucket, objectPath, time.Duration(publicReviewImageSignedURLExpiresInHours)*time.Hour)
+	if err == nil && strings.TrimSpace(presignedURL) != "" {
+		return presignedURL
+	}
 
 	return c.s3.PublicObjectURL(bucket, objectPath)
 }
 
-func (c *supabaseStorageClient) UploadReviewImage(ctx context.Context, productID uuid.UUID, reviewID uuid.UUID, fileName string, encoded string) (*uploadedReviewImage, error) {
+func (c *railwayStorageClient) UploadReviewImage(ctx context.Context, productID uuid.UUID, reviewID uuid.UUID, fileName string, encoded string) (*uploadedReviewImage, error) {
 	if !c.enabledForPublic() {
-		return nil, errors.New("supabase public storage is not configured")
+		return nil, errors.New("railway public storage is not configured")
 	}
 
 	data, mimeType, err := decodeReviewBase64Image(encoded)

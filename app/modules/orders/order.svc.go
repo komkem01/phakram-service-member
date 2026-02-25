@@ -1631,8 +1631,8 @@ func (s *Service) ConfirmOrderPaymentService(ctx context.Context, orderID uuid.U
 	if slipAttached {
 		trimmedSlipBase64 := strings.TrimSpace(req.SlipImageBase64)
 
-		if s.supabase != nil && s.supabase.enabledForPrivate() {
-			uploadedSlip, err := s.supabase.UploadPaymentSlip(ctx, order.ID, order.PaymentID, slipFileName, trimmedSlipBase64)
+		if s.railwayStorage != nil && s.railwayStorage.enabledForPrivate() {
+			uploadedSlip, err := s.railwayStorage.UploadPaymentSlip(ctx, order.ID, order.PaymentID, slipFileName, trimmedSlipBase64)
 			if err != nil {
 				return nil, err
 			}

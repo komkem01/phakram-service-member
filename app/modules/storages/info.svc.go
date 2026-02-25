@@ -18,8 +18,8 @@ func (s *Service) InfoService(ctx context.Context, id uuid.UUID) (*ent.StorageEn
 		return nil, err
 	}
 
-	if s.supabase != nil {
-		resolved, resolveErr := s.supabase.ResolveObjectURL(ctx, data.FilePath)
+	if s.railwayStorage != nil {
+		resolved, resolveErr := s.railwayStorage.ResolveObjectURL(ctx, data.FilePath)
 		if resolveErr == nil && strings.TrimSpace(resolved) != "" {
 			data.FilePath = resolved
 		}

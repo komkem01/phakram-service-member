@@ -13,7 +13,7 @@ type Module struct {
 	Ctl *Controller
 }
 
-type SupabaseConfig struct {
+type RailwayConfig struct {
 	URL            string
 	ServiceRoleKey string
 	PublicBucket   string
@@ -22,10 +22,10 @@ type SupabaseConfig struct {
 
 type (
 	Service struct {
-		tracer   trace.Tracer
-		bunDB    *database.DatabaseService
-		db       entitiesinf.StorageEntity
-		supabase *supabaseStorageClient
+		tracer         trace.Tracer
+		bunDB          *database.DatabaseService
+		db             entitiesinf.StorageEntity
+		railwayStorage *railwayStorageClient
 	}
 	Controller struct {
 		tracer trace.Tracer
@@ -34,29 +34,29 @@ type (
 )
 
 type Options struct {
-	tracer       trace.Tracer
-	bunDB        *database.DatabaseService
-	db           entitiesinf.StorageEntity
-	supabaseConf SupabaseConfig
+	tracer      trace.Tracer
+	bunDB       *database.DatabaseService
+	db          entitiesinf.StorageEntity
+	railwayConf RailwayConfig
 }
 
-func New(bunDB *database.DatabaseService, db entitiesinf.StorageEntity, supabaseConf SupabaseConfig) *Module {
+func New(bunDB *database.DatabaseService, db entitiesinf.StorageEntity, railwayConf RailwayConfig) *Module {
 	tracer := otel.Tracer("storages_module")
 	svc := newService(&Options{
-		tracer:       tracer,
-		bunDB:        bunDB,
-		db:           db,
-		supabaseConf: supabaseConf,
+		tracer:      tracer,
+		bunDB:       bunDB,
+		db:          db,
+		railwayConf: railwayConf,
 	})
 	return &Module{Svc: svc, Ctl: newController(tracer, svc)}
 }
 
 func newService(opt *Options) *Service {
 	return &Service{
-		tracer:   opt.tracer,
-		bunDB:    opt.bunDB,
-		db:       opt.db,
-		supabase: newSupabaseStorageClient(opt.supabaseConf),
+		tracer:         opt.tracer,
+		bunDB:          opt.bunDB,
+		db:             opt.db,
+		railwayStorage: newRailwayStorageClient(opt.railwayConf),
 	}
 }
 

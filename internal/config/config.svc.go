@@ -25,7 +25,7 @@ type Service[T any] struct {
 func newService[T any](dConf *T) *Service[T] {
 	loadDotEnv()
 	conf := configWithDefault(dConf)
-	applySupabaseAliases(conf)
+	applyRailwayStorageAliases(conf)
 	applyKafkaAliases(conf)
 	confRef := reflect.ValueOf(conf)
 	appName := confRef.Elem().FieldByName("AppName").String()
@@ -94,7 +94,7 @@ func discoverDotEnvCandidates(start string) []string {
 	return candidates
 }
 
-func applySupabaseAliases[T any](conf *T) {
+func applyRailwayStorageAliases[T any](conf *T) {
 	if conf == nil {
 		return
 	}
@@ -109,13 +109,13 @@ func applySupabaseAliases[T any](conf *T) {
 		return
 	}
 
-	supabase := structValue.FieldByName("Supabase")
-	if !supabase.IsValid() || supabase.Kind() != reflect.Struct {
+	railwayStorage := structValue.FieldByName("RailwayStorage")
+	if !railwayStorage.IsValid() || railwayStorage.Kind() != reflect.Struct {
 		return
 	}
 
 	setAlias := func(fieldName string, envNames ...string) {
-		field := supabase.FieldByName(fieldName)
+		field := railwayStorage.FieldByName(fieldName)
 		if !field.IsValid() || field.Kind() != reflect.String || !field.CanSet() {
 			return
 		}
@@ -134,7 +134,7 @@ func applySupabaseAliases[T any](conf *T) {
 	setAlias("URL", "OBJECT_ENDPOINT_URL")
 	setAlias("ServiceRoleKey", "OBJECT_SECRET_ACCESS_KEY")
 	setAlias("PublicBucket", "OBJECT_PUBLIC_BUCKET")
-	setAlias("ReviewBucket", "OBJECT_REVIEW_BUCKET", "SUPABASE_PUBLIC_BUCKET", "OBJECT_PUBLIC_BUCKET")
+	setAlias("ReviewBucket", "OBJECT_REVIEW_BUCKET", "OBJECT_PUBLIC_BUCKET")
 	setAlias("PrivateBucket", "OBJECT_PRIVATE_BUCKET")
 }
 

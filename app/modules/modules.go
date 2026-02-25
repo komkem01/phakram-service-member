@@ -85,11 +85,11 @@ func modulesInit() {
 	otel := collector.New(config.Conf[collector.Config](confMod.Svc))
 	log := log.With(slog.String("module", "modules"))
 	log.With(
-		slog.String("supabase_url", strings.TrimSpace(conf.Supabase.URL)),
-		slog.String("supabase_public_bucket", strings.TrimSpace(conf.Supabase.PublicBucket)),
-		slog.String("supabase_review_bucket", strings.TrimSpace(conf.Supabase.ReviewBucket)),
-		slog.Bool("supabase_service_role_key_set", strings.TrimSpace(conf.Supabase.ServiceRoleKey) != ""),
-	).Infof("supabase config loaded")
+		slog.String("railway_storage_url", strings.TrimSpace(conf.RailwayStorage.URL)),
+		slog.String("railway_public_bucket", strings.TrimSpace(conf.RailwayStorage.PublicBucket)),
+		slog.String("railway_review_bucket", strings.TrimSpace(conf.RailwayStorage.ReviewBucket)),
+		slog.Bool("railway_secret_access_key_set", strings.TrimSpace(conf.RailwayStorage.ServiceRoleKey) != ""),
+	).Infof("railway storage config loaded")
 
 	sentryMod := sentry.New(config.Conf[sentry.Config](confMod.Svc))
 
@@ -109,19 +109,19 @@ func modulesInit() {
 	tiersMod := tiers.New(db.Svc, entitiesMod.Svc)
 	systemBankAccountsMod := systembankaccounts.New(db.Svc)
 	categoriesMod := categories.New(db.Svc, entitiesMod.Svc)
-	productsMod := products.New(db.Svc, entitiesMod.Svc, entitiesMod.Svc, products.SupabaseConfig{
-		URL:            conf.Supabase.URL,
-		ServiceRoleKey: conf.Supabase.ServiceRoleKey,
-		PublicBucket:   conf.Supabase.PublicBucket,
-		PrivateBucket:  conf.Supabase.PrivateBucket,
+	productsMod := products.New(db.Svc, entitiesMod.Svc, entitiesMod.Svc, products.RailwayConfig{
+		URL:            conf.RailwayStorage.URL,
+		ServiceRoleKey: conf.RailwayStorage.ServiceRoleKey,
+		PublicBucket:   conf.RailwayStorage.PublicBucket,
+		PrivateBucket:  conf.RailwayStorage.PrivateBucket,
 	})
 	productDetailsMod := productdetails.New(db.Svc)
 	productStocksMod := productstocks.New(db.Svc)
-	storagesMod := storages.New(db.Svc, entitiesMod.Svc, storages.SupabaseConfig{
-		URL:            conf.Supabase.URL,
-		ServiceRoleKey: conf.Supabase.ServiceRoleKey,
-		PublicBucket:   conf.Supabase.PublicBucket,
-		PrivateBucket:  conf.Supabase.PrivateBucket,
+	storagesMod := storages.New(db.Svc, entitiesMod.Svc, storages.RailwayConfig{
+		URL:            conf.RailwayStorage.URL,
+		ServiceRoleKey: conf.RailwayStorage.ServiceRoleKey,
+		PublicBucket:   conf.RailwayStorage.PublicBucket,
+		PrivateBucket:  conf.RailwayStorage.PrivateBucket,
 	})
 	authMod := auth.New(db.Svc, conf.AppKey)
 	membersMod := members.New(
@@ -137,22 +137,22 @@ func modulesInit() {
 		entitiesMod.Svc,
 		entitiesMod.Svc,
 	)
-	ordersMod := orders.New(db.Svc, entitiesMod.Svc, entitiesMod.Svc, orders.SupabaseConfig{
-		URL:            conf.Supabase.URL,
-		ServiceRoleKey: conf.Supabase.ServiceRoleKey,
-		PublicBucket:   conf.Supabase.PublicBucket,
-		PrivateBucket:  conf.Supabase.PrivateBucket,
+	ordersMod := orders.New(db.Svc, entitiesMod.Svc, entitiesMod.Svc, orders.RailwayConfig{
+		URL:            conf.RailwayStorage.URL,
+		ServiceRoleKey: conf.RailwayStorage.ServiceRoleKey,
+		PublicBucket:   conf.RailwayStorage.PublicBucket,
+		PrivateBucket:  conf.RailwayStorage.PrivateBucket,
 	})
 	contactMod := contact.New(db.Svc, &conf.Contact)
 	paymentsMod := payments.New(db.Svc, entitiesMod.Svc)
 	cartsMod := carts.New(db.Svc, entitiesMod.Svc, entitiesMod.Svc)
 	promotionsMod := promotions.New(db.Svc)
-	reviewsMod := reviews.New(db.Svc, reviews.SupabaseConfig{
-		URL:            conf.Supabase.URL,
-		ServiceRoleKey: conf.Supabase.ServiceRoleKey,
-		PublicBucket:   conf.Supabase.PublicBucket,
-		ReviewBucket:   conf.Supabase.ReviewBucket,
-		PrivateBucket:  conf.Supabase.PrivateBucket,
+	reviewsMod := reviews.New(db.Svc, reviews.RailwayConfig{
+		URL:            conf.RailwayStorage.URL,
+		ServiceRoleKey: conf.RailwayStorage.ServiceRoleKey,
+		PublicBucket:   conf.RailwayStorage.PublicBucket,
+		ReviewBucket:   conf.RailwayStorage.ReviewBucket,
+		PrivateBucket:  conf.RailwayStorage.PrivateBucket,
 	})
 	mod = &Modules{
 		Conf:               confMod,
