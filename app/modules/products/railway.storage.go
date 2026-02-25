@@ -220,7 +220,7 @@ func decodeBase64Image(input string) ([]byte, string, error) {
 
 func isAllowedProductImageMIME(mimeType string) bool {
 	switch strings.ToLower(strings.TrimSpace(mimeType)) {
-	case "image/jpeg", "image/png", "image/webp":
+	case "image/jpeg", "image/png", "image/webp", "image/heic", "image/heif", "image/heic-sequence", "image/heif-sequence":
 		return true
 	default:
 		return false
@@ -235,6 +235,10 @@ func extensionByMIME(mimeType string) string {
 		return ".png"
 	case "image/webp":
 		return ".webp"
+	case "image/heic", "image/heic-sequence":
+		return ".heic"
+	case "image/heif", "image/heif-sequence":
+		return ".heif"
 	default:
 		return ".bin"
 	}
