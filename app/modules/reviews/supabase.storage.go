@@ -22,6 +22,7 @@ type supabaseStorageClient struct {
 	url           string
 	serviceKey    string
 	publicBucket  string
+	reviewBucket  string
 	privateBucket string
 	httpClient    *http.Client
 }
@@ -34,17 +35,23 @@ type uploadedReviewImage struct {
 }
 
 func newSupabaseStorageClient(conf SupabaseConfig) *supabaseStorageClient {
+	reviewBucket := strings.TrimSpace(conf.ReviewBucket)
+	if reviewBucket == "" {
+		reviewBucket = strings.TrimSpace(conf.PublicBucket)
+	}
+
 	return &supabaseStorageClient{
 		url:           strings.TrimRight(strings.TrimSpace(conf.URL), "/"),
 		serviceKey:    strings.TrimSpace(conf.ServiceRoleKey),
 		publicBucket:  strings.TrimSpace(conf.PublicBucket),
+		reviewBucket:  reviewBucket,
 		privateBucket: strings.TrimSpace(conf.PrivateBucket),
 		httpClient:    &http.Client{Timeout: 20 * time.Second},
 	}
 }
 
 func (c *supabaseStorageClient) enabledForPublic() bool {
-	return c != nil && c.url != "" && c.serviceKey != "" && c.publicBucket != ""
+	return c != nil && c.url != "" && c.serviceKey != "" && c.reviewBucket != ""
 }
 
 func (c *supabaseStorageClient) ResolveObjectURL(storedPath string) string {
@@ -55,7 +62,7 @@ func (c *supabaseStorageClient) ResolveObjectURL(storedPath string) string {
 	if strings.HasPrefix(trimmed, "http://") || strings.HasPrefix(trimmed, "https://") || strings.HasPrefix(trimmed, "data:") {
 		return trimmed
 	}
-	if c == nil || c.url == "" || c.publicBucket == "" {
+	if c == nil || c.url == "" {
 		return trimmed
 	}
 
@@ -63,15 +70,13 @@ func (c *supabaseStorageClient) ResolveObjectURL(storedPath string) string {
 	if len(parts) != 2 {
 		return trimmed
 	}
-	if parts[0] != c.publicBucket {
-		return trimmed
-	}
+	bucket := strings.TrimSpace(parts[0])
 	objectPath := strings.TrimLeft(parts[1], "/")
 	if objectPath == "" {
 		return trimmed
 	}
 
-	return fmt.Sprintf("%s/storage/v1/object/public/%s/%s", c.url, c.publicBucket, objectPath)
+	return fmt.Sprintf("%s/storage/v1/object/public/%s/%s", c.url, bucket, objectPath)
 }
 
 func (c *supabaseStorageClient) UploadReviewImage(ctx context.Context, productID uuid.UUID, reviewID uuid.UUID, fileName string, encoded string) (*uploadedReviewImage, error) {
@@ -100,7 +105,7 @@ func (c *supabaseStorageClient) UploadReviewImage(ctx context.Context, productID
 	}
 
 	objectPath := fmt.Sprintf("reviews/%s/%s/%s-%d%s", productID.String(), reviewID.String(), uuid.NewString(), time.Now().UnixMilli(), ext)
-	endpoint := fmt.Sprintf("%s/storage/v1/object/%s/%s", c.url, c.publicBucket, objectPath)
+	endpoint := fmt.Sprintf("%s/storage/v1/object/%s/%s", c.url, c.reviewBucket, objectPath)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(data))
 	if err != nil {
@@ -123,7 +128,7 @@ func (c *supabaseStorageClient) UploadReviewImage(ctx context.Context, productID
 	}
 
 	return &uploadedReviewImage{
-		Path:     fmt.Sprintf("%s/%s", c.publicBucket, objectPath),
+		Path:     fmt.Sprintf("%s/%s", c.reviewBucket, objectPath),
 		FileName: safeName,
 		MIMEType: mimeType,
 		Size:     int64(len(data)),

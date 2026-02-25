@@ -228,6 +228,7 @@ func apiAuth(r *gin.RouterGroup, mod *modules.Modules) {
 			reviews.GET("/eligible", mod.Reviews.Ctl.ListEligibleController)
 			reviews.POST("/", mod.Reviews.Ctl.CreateController)
 			reviews.PATCH("/:id", mod.Reviews.Ctl.UpdateController)
+			reviews.DELETE("/:id", mod.Reviews.Ctl.DeleteController)
 			reviews.PATCH("/:id/visibility", mod.Reviews.Ctl.UpdateVisibilityController)
 		}
 

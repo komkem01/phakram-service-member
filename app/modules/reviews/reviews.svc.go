@@ -536,6 +536,50 @@ func (s *Service) Update(ctx context.Context, req *UpdateReviewServiceRequest) e
 	})
 }
 
+func (s *Service) Delete(ctx context.Context, reviewID uuid.UUID, memberID uuid.UUID) error {
+	review := new(productReviewRecord)
+	if err := s.bunDB.DB().NewSelect().
+		Model(review).
+		Where("id = ?", reviewID).
+		Where("member_id = ?", memberID).
+		Limit(1).
+		Scan(ctx); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return errors.New("review not found")
+		}
+		return err
+	}
+
+	if review.CreatedAt.Add(reviewEditWindowDuration).Before(time.Now().UTC()) {
+		return errors.New("review edit window expired")
+	}
+
+	return s.bunDB.DB().RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
+		if _, err := tx.NewDelete().
+			Model((*productReviewImageRecord)(nil)).
+			Where("review_id = ?", reviewID).
+			Exec(ctx); err != nil {
+			return err
+		}
+
+		res, err := tx.NewDelete().
+			Model((*productReviewRecord)(nil)).
+			Where("id = ?", reviewID).
+			Where("member_id = ?", memberID).
+			Exec(ctx)
+		if err != nil {
+			return err
+		}
+
+		affected, _ := res.RowsAffected()
+		if affected == 0 {
+			return errors.New("review not found")
+		}
+
+		return nil
+	})
+}
+
 func (s *Service) applyAdminReviewFilters(query *bun.SelectQuery, req *ListAdminReviewsServiceRequest) {
 	if req.ProductID != nil {
 		query.Where("pr.product_id = ?", *req.ProductID)

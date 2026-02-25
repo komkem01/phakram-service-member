@@ -45,6 +45,7 @@ type SupabaseConfig struct {
 	URL            string
 	ServiceRoleKey string
 	PublicBucket   string
+	ReviewBucket   string
 	PrivateBucket  string
 }
 

@@ -26,6 +26,7 @@ func newService[T any](dConf *T) *Service[T] {
 	loadDotEnv()
 	conf := configWithDefault(dConf)
 	applySupabaseAliases(conf)
+	applyKafkaAliases(conf)
 	confRef := reflect.ValueOf(conf)
 	appName := confRef.Elem().FieldByName("AppName").String()
 	debug := confRef.Elem().FieldByName("Debug").Bool()
@@ -45,14 +46,14 @@ func newService[T any](dConf *T) *Service[T] {
 
 func loadDotEnv() {
 	paths := []string{
-		".env",
 		"phakram-service-member/.env",
 		"../phakram-service-member/.env",
+		".env",
 	}
 
 	for _, path := range paths {
 		if _, err := os.Stat(path); err == nil {
-			_ = godotenv.Load(path)
+			_ = godotenv.Overload(path)
 			return
 		}
 	}
@@ -60,13 +61,13 @@ func loadDotEnv() {
 	if cwd, err := os.Getwd(); err == nil {
 		for _, candidate := range discoverDotEnvCandidates(cwd) {
 			if _, statErr := os.Stat(candidate); statErr == nil {
-				_ = godotenv.Load(candidate)
+				_ = godotenv.Overload(candidate)
 				return
 			}
 		}
 	}
 
-	_ = godotenv.Load()
+	_ = godotenv.Overload()
 }
 
 func discoverDotEnvCandidates(start string) []string {
@@ -79,8 +80,8 @@ func discoverDotEnvCandidates(start string) []string {
 	current := trimmed
 	for {
 		candidates = append(candidates,
-			filepath.Join(current, ".env"),
 			filepath.Join(current, "phakram-service-member", ".env"),
+			filepath.Join(current, ".env"),
 		)
 
 		next := filepath.Dir(current)
@@ -131,7 +132,49 @@ func applySupabaseAliases[T any](conf *T) {
 	}
 
 	setAlias("PublicBucket", "OBJECT_PUBLIC_BUCKET")
+	setAlias("ReviewBucket", "SUPABASE_PUBLIC_BUCKET", "OBJECT_PUBLIC_BUCKET")
 	setAlias("PrivateBucket", "OBJECT_PRIVATE_BUCKET")
+}
+
+func applyKafkaAliases[T any](conf *T) {
+	if conf == nil {
+		return
+	}
+
+	root := reflect.ValueOf(conf)
+	if root.Kind() != reflect.Pointer || root.IsNil() {
+		return
+	}
+
+	structValue := root.Elem()
+	if structValue.Kind() != reflect.Struct {
+		return
+	}
+
+	kafka := structValue.FieldByName("Kafka")
+	if !kafka.IsValid() || kafka.Kind() != reflect.Struct {
+		return
+	}
+
+	setAlias := func(fieldName string, envNames ...string) {
+		field := kafka.FieldByName(fieldName)
+		if !field.IsValid() || field.Kind() != reflect.String || !field.CanSet() {
+			return
+		}
+		if strings.TrimSpace(field.String()) != "" {
+			return
+		}
+
+		for _, envName := range envNames {
+			if value := strings.TrimSpace(os.Getenv(envName)); value != "" {
+				field.SetString(value)
+				return
+			}
+		}
+	}
+
+	setAlias("CaPath", "KAFKA_CA_CERT_PATH")
+	setAlias("CertPath", "KAFKA_CERT_PATH_PATH")
 }
 
 // HostName returns the hostname of the service.

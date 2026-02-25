@@ -35,6 +35,7 @@ import (
 	"phakram/internal/database"
 	"phakram/internal/log"
 	"phakram/internal/otel/collector"
+	"strings"
 	"sync"
 	// "phakram/app/modules/kafka"
 )
@@ -83,6 +84,12 @@ func modulesInit() {
 	logMod := log.New(config.Conf[log.Option](confMod.Svc))
 	otel := collector.New(config.Conf[collector.Config](confMod.Svc))
 	log := log.With(slog.String("module", "modules"))
+	log.With(
+		slog.String("supabase_url", strings.TrimSpace(conf.Supabase.URL)),
+		slog.String("supabase_public_bucket", strings.TrimSpace(conf.Supabase.PublicBucket)),
+		slog.String("supabase_review_bucket", strings.TrimSpace(conf.Supabase.ReviewBucket)),
+		slog.Bool("supabase_service_role_key_set", strings.TrimSpace(conf.Supabase.ServiceRoleKey) != ""),
+	).Infof("supabase config loaded")
 
 	sentryMod := sentry.New(config.Conf[sentry.Config](confMod.Svc))
 
@@ -144,6 +151,7 @@ func modulesInit() {
 		URL:            conf.Supabase.URL,
 		ServiceRoleKey: conf.Supabase.ServiceRoleKey,
 		PublicBucket:   conf.Supabase.PublicBucket,
+		ReviewBucket:   conf.Supabase.ReviewBucket,
 		PrivateBucket:  conf.Supabase.PrivateBucket,
 	})
 	mod = &Modules{

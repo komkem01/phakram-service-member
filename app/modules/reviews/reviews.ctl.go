@@ -186,6 +186,33 @@ func (c *Controller) UpdateController(ctx *gin.Context) {
 	base.Success(ctx, nil)
 }
 
+func (c *Controller) DeleteController(ctx *gin.Context) {
+	memberID, ok := auth.GetMemberID(ctx)
+	if !ok {
+		base.Forbidden(ctx, i18n.Forbidden, nil)
+		return
+	}
+
+	var uriReq ReviewURIRequest
+	if err := ctx.ShouldBindUri(&uriReq); err != nil {
+		base.BadRequest(ctx, i18n.BadRequest, nil)
+		return
+	}
+
+	reviewID, err := uuid.Parse(strings.TrimSpace(uriReq.ReviewID))
+	if err != nil {
+		base.BadRequest(ctx, i18n.BadRequest, nil)
+		return
+	}
+
+	if err := c.svc.Delete(ctx.Request.Context(), reviewID, memberID); err != nil {
+		base.HandleError(ctx, err)
+		return
+	}
+
+	base.Success(ctx, nil)
+}
+
 func (c *Controller) ListAdminController(ctx *gin.Context) {
 	if !auth.GetIsAdmin(ctx) {
 		base.Forbidden(ctx, i18n.Forbidden, nil)
