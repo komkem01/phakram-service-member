@@ -1,31 +1,26 @@
 package products
 
 import (
-	"bytes"
 	"context"
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"io"
 	"mime"
 	"net/http"
 	"os"
-	"path/filepath"
+	"phakram/app/utils/s3compat"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/joho/godotenv"
 )
 
 const maxProductImageFileSizeBytes = 5 * 1024 * 1024
 
 type supabaseStorageClient struct {
-	url           string
-	serviceKey    string
+	s3            *s3compat.Client
 	publicBucket  string
 	privateBucket string
-	httpClient    *http.Client
 }
 
 type uploadedProductImage struct {
@@ -36,15 +31,18 @@ type uploadedProductImage struct {
 }
 
 func newSupabaseStorageClient(conf SupabaseConfig) *supabaseStorageClient {
-	url := strings.TrimRight(strings.TrimSpace(conf.URL), "/")
-	if url == "" {
-		url = strings.TrimRight(firstNonEmptyEnv("SUPABASE_URL"), "/")
+	endpointURL := strings.TrimRight(strings.TrimSpace(conf.URL), "/")
+	if endpointURL == "" {
+		endpointURL = strings.TrimRight(firstNonEmptyEnv("OBJECT_ENDPOINT_URL", "SUPABASE_URL"), "/")
 	}
 
-	serviceKey := strings.TrimSpace(conf.ServiceRoleKey)
-	if serviceKey == "" {
-		serviceKey = firstNonEmptyEnv("SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_SERVICE_KEY", "SUPABASE_ANON_KEY")
+	secretAccessKey := strings.TrimSpace(conf.ServiceRoleKey)
+	if secretAccessKey == "" {
+		secretAccessKey = firstNonEmptyEnv("OBJECT_SECRET_ACCESS_KEY", "SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_SERVICE_KEY", "SUPABASE_ANON_KEY")
 	}
+
+	accessKeyID := firstNonEmptyEnv("OBJECT_ACCESS_KEY_ID")
+	region := firstNonEmptyEnv("OBJECT_REGION", "AWS_REGION", "AWS_DEFAULT_REGION")
 
 	publicBucket := strings.TrimSpace(conf.PublicBucket)
 	if publicBucket == "" {
@@ -53,15 +51,13 @@ func newSupabaseStorageClient(conf SupabaseConfig) *supabaseStorageClient {
 
 	privateBucket := strings.TrimSpace(conf.PrivateBucket)
 	if privateBucket == "" {
-		privateBucket = firstNonEmptyEnv("SUPABASE_PRIVATE_BUCKET", "OBJECT_PRIVATE_BUCKET")
+		privateBucket = firstNonEmptyEnv("OBJECT_PRIVATE_BUCKET", "SUPABASE_PRIVATE_BUCKET")
 	}
 
 	return &supabaseStorageClient{
-		url:           url,
-		serviceKey:    serviceKey,
+		s3:            s3compat.NewClient(endpointURL, accessKeyID, secretAccessKey, region, 20*time.Second),
 		publicBucket:  publicBucket,
 		privateBucket: privateBucket,
-		httpClient:    &http.Client{Timeout: 20 * time.Second},
 	}
 }
 
@@ -75,21 +71,22 @@ func firstNonEmptyEnv(names ...string) string {
 }
 
 func (c *supabaseStorageClient) enabledPublic() bool {
-	c.ensureRuntimeConfig()
-	return c != nil && c.url != "" && c.serviceKey != "" && c.publicBucket != ""
+	return c != nil && c.s3 != nil && c.s3.Enabled() && c.publicBucket != ""
 }
 
 func (c *supabaseStorageClient) missingPublicConfigFields() []string {
-	c.ensureRuntimeConfig()
 	if c == nil {
 		return []string{"client"}
 	}
 
 	missing := make([]string, 0, 3)
-	if c.url == "" {
+	if c.s3 == nil || c.s3.EndpointURL() == "" {
 		missing = append(missing, "url")
 	}
-	if c.serviceKey == "" {
+	if c.s3 == nil || c.s3.AccessKeyID() == "" {
+		missing = append(missing, "access_key_id")
+	}
+	if c.s3 == nil || c.s3.SecretAccessKey() == "" {
 		missing = append(missing, "service_role_key")
 	}
 	if c.publicBucket == "" {
@@ -97,79 +94,6 @@ func (c *supabaseStorageClient) missingPublicConfigFields() []string {
 	}
 
 	return missing
-}
-
-func (c *supabaseStorageClient) ensureRuntimeConfig() {
-	if c == nil {
-		return
-	}
-
-	if c.url != "" && c.serviceKey != "" && c.publicBucket != "" {
-		return
-	}
-
-	loadDotEnvForSupabase()
-
-	if c.url == "" {
-		c.url = strings.TrimRight(firstNonEmptyEnv("SUPABASE_URL"), "/")
-	}
-	if c.serviceKey == "" {
-		c.serviceKey = firstNonEmptyEnv("SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_SERVICE_KEY", "SUPABASE_ANON_KEY")
-	}
-	if c.publicBucket == "" {
-		c.publicBucket = firstNonEmptyEnv("SUPABASE_PUBLIC_BUCKET", "OBJECT_PUBLIC_BUCKET")
-	}
-	if c.privateBucket == "" {
-		c.privateBucket = firstNonEmptyEnv("SUPABASE_PRIVATE_BUCKET", "OBJECT_PRIVATE_BUCKET")
-	}
-}
-
-func loadDotEnvForSupabase() {
-	paths := []string{
-		".env",
-		"phakram-service-member/.env",
-		"../phakram-service-member/.env",
-	}
-
-	for _, path := range paths {
-		if _, err := os.Stat(path); err == nil {
-			_ = godotenv.Load(path)
-			return
-		}
-	}
-
-	if cwd, err := os.Getwd(); err == nil {
-		for _, path := range discoverDotEnvCandidates(cwd) {
-			if _, statErr := os.Stat(path); statErr == nil {
-				_ = godotenv.Load(path)
-				return
-			}
-		}
-	}
-}
-
-func discoverDotEnvCandidates(start string) []string {
-	trimmed := strings.TrimSpace(start)
-	if trimmed == "" {
-		return nil
-	}
-
-	candidates := make([]string, 0, 12)
-	current := trimmed
-	for {
-		candidates = append(candidates,
-			filepath.Join(current, ".env"),
-			filepath.Join(current, "phakram-service-member", ".env"),
-		)
-
-		next := filepath.Dir(current)
-		if next == current {
-			break
-		}
-		current = next
-	}
-
-	return candidates
 }
 
 func (c *supabaseStorageClient) ResolveObjectURL(storedPath string) string {
@@ -180,7 +104,7 @@ func (c *supabaseStorageClient) ResolveObjectURL(storedPath string) string {
 	if strings.HasPrefix(trimmed, "http://") || strings.HasPrefix(trimmed, "https://") || strings.HasPrefix(trimmed, "data:") {
 		return trimmed
 	}
-	if c == nil || c.url == "" || c.publicBucket == "" {
+	if c == nil || c.s3 == nil || c.publicBucket == "" {
 		return trimmed
 	}
 	bucket, objectPath, ok := splitBucketAndObjectPath(trimmed)
@@ -190,7 +114,7 @@ func (c *supabaseStorageClient) ResolveObjectURL(storedPath string) string {
 	if bucket != c.publicBucket {
 		return trimmed
 	}
-	return fmt.Sprintf("%s/storage/v1/object/public/%s/%s", c.url, bucket, objectPath)
+	return c.s3.PublicObjectURL(bucket, objectPath)
 }
 
 func (c *supabaseStorageClient) UploadProductImage(ctx context.Context, productID uuid.UUID, fileName string, encoded string) (*uploadedProductImage, error) {
@@ -219,26 +143,8 @@ func (c *supabaseStorageClient) UploadProductImage(ctx context.Context, productI
 	}
 
 	objectPath := fmt.Sprintf("products/%s/%s-%d%s", productID.String(), uuid.NewString(), time.Now().UnixMilli(), ext)
-	endpoint := fmt.Sprintf("%s/storage/v1/object/%s/%s", c.url, c.publicBucket, objectPath)
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(data))
-	if err != nil {
+	if err := c.s3.PutObject(ctx, c.publicBucket, objectPath, mimeType, data); err != nil {
 		return nil, err
-	}
-	req.Header.Set("Authorization", "Bearer "+c.serviceKey)
-	req.Header.Set("apikey", c.serviceKey)
-	req.Header.Set("Content-Type", mimeType)
-	req.Header.Set("x-upsert", "true")
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		body, _ := io.ReadAll(io.LimitReader(resp.Body, 1024))
-		return nil, fmt.Errorf("supabase upload failed: %s", strings.TrimSpace(string(body)))
 	}
 
 	return &uploadedProductImage{
@@ -257,8 +163,7 @@ func (c *supabaseStorageClient) DeleteProductImageObject(ctx context.Context, st
 	if c == nil {
 		return nil
 	}
-	c.ensureRuntimeConfig()
-	if c.url == "" || c.serviceKey == "" {
+	if c.s3 == nil || !c.s3.Enabled() {
 		return nil
 	}
 
@@ -267,29 +172,7 @@ func (c *supabaseStorageClient) DeleteProductImageObject(ctx context.Context, st
 		return nil
 	}
 
-	endpoint := fmt.Sprintf("%s/storage/v1/object/%s/%s", c.url, bucket, objectPath)
-	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, endpoint, nil)
-	if err != nil {
-		return err
-	}
-	req.Header.Set("Authorization", "Bearer "+c.serviceKey)
-	req.Header.Set("apikey", c.serviceKey)
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == http.StatusNotFound {
-		return nil
-	}
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		body, _ := io.ReadAll(io.LimitReader(resp.Body, 1024))
-		return fmt.Errorf("supabase delete failed: %s", strings.TrimSpace(string(body)))
-	}
-
-	return nil
+	return c.s3.DeleteObject(ctx, bucket, objectPath)
 }
 
 func decodeBase64Image(input string) ([]byte, string, error) {

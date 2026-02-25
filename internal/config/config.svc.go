@@ -131,8 +131,10 @@ func applySupabaseAliases[T any](conf *T) {
 		}
 	}
 
+	setAlias("URL", "OBJECT_ENDPOINT_URL")
+	setAlias("ServiceRoleKey", "OBJECT_SECRET_ACCESS_KEY")
 	setAlias("PublicBucket", "OBJECT_PUBLIC_BUCKET")
-	setAlias("ReviewBucket", "SUPABASE_PUBLIC_BUCKET", "OBJECT_PUBLIC_BUCKET")
+	setAlias("ReviewBucket", "OBJECT_REVIEW_BUCKET", "SUPABASE_PUBLIC_BUCKET", "OBJECT_PUBLIC_BUCKET")
 	setAlias("PrivateBucket", "OBJECT_PRIVATE_BUCKET")
 }
 

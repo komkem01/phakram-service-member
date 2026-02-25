@@ -1,15 +1,15 @@
 package reviews
 
 import (
-	"bytes"
 	"context"
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"io"
 	"mime"
 	"net/http"
+	"os"
 	"path/filepath"
+	"phakram/app/utils/s3compat"
 	"strings"
 	"time"
 
@@ -19,12 +19,10 @@ import (
 const maxReviewImageFileSizeBytes = 5 * 1024 * 1024
 
 type supabaseStorageClient struct {
-	url           string
-	serviceKey    string
+	s3            *s3compat.Client
 	publicBucket  string
 	reviewBucket  string
 	privateBucket string
-	httpClient    *http.Client
 }
 
 type uploadedReviewImage struct {
@@ -35,23 +33,60 @@ type uploadedReviewImage struct {
 }
 
 func newSupabaseStorageClient(conf SupabaseConfig) *supabaseStorageClient {
+	endpointURL := strings.TrimRight(strings.TrimSpace(conf.URL), "/")
+	if endpointURL == "" {
+		endpointURL = strings.TrimRight(firstNonEmptyEnv("OBJECT_ENDPOINT_URL", "SUPABASE_URL"), "/")
+	}
+
+	secretAccessKey := strings.TrimSpace(conf.ServiceRoleKey)
+	if secretAccessKey == "" {
+		secretAccessKey = firstNonEmptyEnv("OBJECT_SECRET_ACCESS_KEY", "SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_SERVICE_KEY", "SUPABASE_ANON_KEY")
+	}
+
+	accessKeyID := firstNonEmptyEnv("OBJECT_ACCESS_KEY_ID")
+	region := firstNonEmptyEnv("OBJECT_REGION", "AWS_REGION", "AWS_DEFAULT_REGION")
+
+	publicBucket := strings.TrimSpace(conf.PublicBucket)
+	if publicBucket == "" {
+		publicBucket = firstNonEmptyEnv("OBJECT_PUBLIC_BUCKET", "SUPABASE_PUBLIC_BUCKET")
+	}
+
+	privateBucket := strings.TrimSpace(conf.PrivateBucket)
+	if privateBucket == "" {
+		privateBucket = firstNonEmptyEnv("OBJECT_PRIVATE_BUCKET", "SUPABASE_PRIVATE_BUCKET")
+	}
+
 	reviewBucket := strings.TrimSpace(conf.ReviewBucket)
 	if reviewBucket == "" {
-		reviewBucket = strings.TrimSpace(conf.PublicBucket)
+		reviewBucket = firstNonEmptyEnv("OBJECT_REVIEW_BUCKET", "SUPABASE_REVIEW_BUCKET")
+	}
+	if reviewBucket == "" {
+		reviewBucket = publicBucket
 	}
 
 	return &supabaseStorageClient{
-		url:           strings.TrimRight(strings.TrimSpace(conf.URL), "/"),
-		serviceKey:    strings.TrimSpace(conf.ServiceRoleKey),
-		publicBucket:  strings.TrimSpace(conf.PublicBucket),
+		s3:            s3compat.NewClient(endpointURL, accessKeyID, secretAccessKey, region, 20*time.Second),
+		publicBucket:  publicBucket,
 		reviewBucket:  reviewBucket,
-		privateBucket: strings.TrimSpace(conf.PrivateBucket),
-		httpClient:    &http.Client{Timeout: 20 * time.Second},
+		privateBucket: privateBucket,
 	}
 }
 
+func firstNonEmptyEnv(names ...string) string {
+	for _, name := range names {
+		trimmedName := strings.TrimSpace(name)
+		if trimmedName == "" {
+			continue
+		}
+		if value := strings.TrimSpace(os.Getenv(trimmedName)); value != "" {
+			return value
+		}
+	}
+	return ""
+}
+
 func (c *supabaseStorageClient) enabledForPublic() bool {
-	return c != nil && c.url != "" && c.serviceKey != "" && c.reviewBucket != ""
+	return c != nil && c.s3 != nil && c.s3.Enabled() && c.reviewBucket != ""
 }
 
 func (c *supabaseStorageClient) ResolveObjectURL(storedPath string) string {
@@ -62,7 +97,7 @@ func (c *supabaseStorageClient) ResolveObjectURL(storedPath string) string {
 	if strings.HasPrefix(trimmed, "http://") || strings.HasPrefix(trimmed, "https://") || strings.HasPrefix(trimmed, "data:") {
 		return trimmed
 	}
-	if c == nil || c.url == "" {
+	if c == nil || c.s3 == nil {
 		return trimmed
 	}
 
@@ -76,7 +111,7 @@ func (c *supabaseStorageClient) ResolveObjectURL(storedPath string) string {
 		return trimmed
 	}
 
-	return fmt.Sprintf("%s/storage/v1/object/public/%s/%s", c.url, bucket, objectPath)
+	return c.s3.PublicObjectURL(bucket, objectPath)
 }
 
 func (c *supabaseStorageClient) UploadReviewImage(ctx context.Context, productID uuid.UUID, reviewID uuid.UUID, fileName string, encoded string) (*uploadedReviewImage, error) {
@@ -105,26 +140,8 @@ func (c *supabaseStorageClient) UploadReviewImage(ctx context.Context, productID
 	}
 
 	objectPath := fmt.Sprintf("reviews/%s/%s/%s-%d%s", productID.String(), reviewID.String(), uuid.NewString(), time.Now().UnixMilli(), ext)
-	endpoint := fmt.Sprintf("%s/storage/v1/object/%s/%s", c.url, c.reviewBucket, objectPath)
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(data))
-	if err != nil {
+	if err := c.s3.PutObject(ctx, c.reviewBucket, objectPath, mimeType, data); err != nil {
 		return nil, err
-	}
-	req.Header.Set("Authorization", "Bearer "+c.serviceKey)
-	req.Header.Set("apikey", c.serviceKey)
-	req.Header.Set("Content-Type", mimeType)
-	req.Header.Set("x-upsert", "true")
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		body, _ := io.ReadAll(io.LimitReader(resp.Body, 1024))
-		return nil, fmt.Errorf("supabase upload failed: %s", strings.TrimSpace(string(body)))
 	}
 
 	return &uploadedReviewImage{
