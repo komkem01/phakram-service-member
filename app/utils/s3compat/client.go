@@ -285,19 +285,12 @@ func (c *Client) buildTarget(bucket string, objectPath string) (*requestTarget, 
 	}
 
 	basePath := strings.TrimSuffix(parsed.Path, "/")
-	objectURI := buildCanonicalObjectURI(objectPath)
 
 	hostname := parsed.Hostname()
 	port := parsed.Port()
-	virtualHosted := shouldUseVirtualHostedStyle(hostname)
 
 	hostnameForRequest := hostname
-	canonicalURI := objectURI
-	if virtualHosted {
-		hostnameForRequest = bucket + "." + hostname
-	} else {
-		canonicalURI = buildCanonicalURI(bucket, objectPath)
-	}
+	canonicalURI := buildCanonicalURI(bucket, objectPath)
 
 	hostForHeader := hostnameForRequest
 	if port != "" {

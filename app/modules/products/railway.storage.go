@@ -115,11 +115,21 @@ func (c *railwayStorageClient) ResolveObjectURL(storedPath string) string {
 	if bucket != c.publicBucket {
 		return trimmed
 	}
+
+	// Try presigned URL first
 	presignedURL, err := c.s3.PresignGetObject(bucket, objectPath, time.Duration(publicImageSignedURLExpiresInHours)*time.Hour)
 	if err == nil && strings.TrimSpace(presignedURL) != "" {
 		return presignedURL
 	}
-	return c.s3.PublicObjectURL(bucket, objectPath)
+
+	// Fallback to public object URL
+	publicURL := c.s3.PublicObjectURL(bucket, objectPath)
+	if publicURL != "" && publicURL != strings.TrimSpace(objectPath) {
+		return publicURL
+	}
+
+	// Last fallback: return the original path
+	return trimmed
 }
 
 func (c *railwayStorageClient) UploadProductImage(ctx context.Context, productID uuid.UUID, fileName string, encoded string) (*uploadedProductImage, error) {
