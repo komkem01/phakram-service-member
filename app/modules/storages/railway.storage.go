@@ -82,8 +82,14 @@ func (c *railwayStorageClient) ResolveObjectURL(ctx context.Context, storedPath 
 		return c.s3.PublicObjectURL(bucket, objectPath), nil
 	}
 
-	if c.privateBucket != "" && bucket == c.privateBucket {
-		return c.createSignedURL(ctx, bucket, objectPath)
+	signedURL, signErr := c.createSignedURL(ctx, bucket, objectPath)
+	if signErr == nil && strings.TrimSpace(signedURL) != "" {
+		return signedURL, nil
+	}
+
+	publicURL := c.s3.PublicObjectURL(bucket, objectPath)
+	if strings.TrimSpace(publicURL) != "" && strings.TrimSpace(publicURL) != strings.TrimSpace(objectPath) {
+		return publicURL, nil
 	}
 
 	return trimmed, nil
