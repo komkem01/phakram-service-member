@@ -63,6 +63,8 @@ type cookiePolicyConsentRow struct {
 }
 
 type cookiePolicyConsentEntity struct {
+	bun.BaseModel `bun:"table:cookie_policy_consents,alias:cpc"`
+
 	ID              uuid.UUID  `bun:"id,pk,type:uuid"`
 	PolicyVersionID uuid.UUID  `bun:"policy_version_id,type:uuid"`
 	MemberID        *uuid.UUID `bun:"member_id,type:uuid"`
@@ -74,6 +76,8 @@ type cookiePolicyConsentEntity struct {
 }
 
 type cookiePolicyVersionEntity struct {
+	bun.BaseModel `bun:"table:cookie_policy_versions,alias:cpv"`
+
 	ID          uuid.UUID  `bun:"id,pk,type:uuid"`
 	PolicyKey   string     `bun:"policy_key"`
 	VersionNo   int        `bun:"version_no"`
@@ -210,8 +214,8 @@ func (s *Service) AcceptCookieConsentService(ctx context.Context, req *AcceptCoo
 	}
 
 	_, err = s.bunDB.DB().NewInsert().
-		Table("cookie_policy_consents").
 		Model(consent).
+		ModelTableExpr("cookie_policy_consents").
 		On("CONFLICT (policy_version_id, visitor_key) DO UPDATE").
 		Set("member_id = EXCLUDED.member_id").
 		Set("accepted_at = EXCLUDED.accepted_at").
@@ -306,8 +310,8 @@ func (s *Service) CreateCookiePolicyVersionService(ctx context.Context, req *Cre
 		}
 
 		if _, err := tx.NewInsert().
-			Table("cookie_policy_versions").
 			Model(newVersion).
+			ModelTableExpr("cookie_policy_versions").
 			Exec(ctx); err != nil {
 			return fmt.Errorf("create cookie policy version failed: %w", err)
 		}
