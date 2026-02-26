@@ -90,6 +90,7 @@ type UpdateOrderServiceRequest struct {
 type ConfirmOrderPaymentServiceRequest struct {
 	TransferredAmount string
 	SlipImageBase64   string
+	SlipFilePath      string
 	SlipFileName      string
 	SlipFileType      string
 	SlipFileSize      int64
@@ -1617,7 +1618,9 @@ func (s *Service) ConfirmOrderPaymentService(ctx context.Context, orderID uuid.U
 		paymentAmount = parsedAmount
 	}
 
-	slipAttached := strings.TrimSpace(req.SlipImageBase64) != ""
+	trimmedSlipBase64 := strings.TrimSpace(req.SlipImageBase64)
+	trimmedSlipPath := strings.TrimSpace(req.SlipFilePath)
+	slipAttached := trimmedSlipBase64 != "" || trimmedSlipPath != ""
 	uploadedBy := requesterID
 	if uploadedBy == uuid.Nil {
 		uploadedBy = order.MemberID
@@ -1629,60 +1632,62 @@ func (s *Service) ConfirmOrderPaymentService(ctx context.Context, orderID uuid.U
 	slipFileSize := req.SlipFileSize
 
 	if slipAttached {
-		trimmedSlipBase64 := strings.TrimSpace(req.SlipImageBase64)
-
-		buildInlineSlip := func() error {
-			decodedSlip, detectedMIME, err := decodeBase64Image(trimmedSlipBase64)
-			if err != nil {
-				return err
-			}
-			if len(decodedSlip) == 0 {
-				return errors.New("slip image is empty")
-			}
-			if len(decodedSlip) > maxSlipFileSizeBytes {
-				return errors.New("slip image exceeds 5 MB")
-			}
-			if !isAllowedImageMIME(detectedMIME) {
-				return fmt.Errorf("unsupported slip image type: %s", detectedMIME)
-			}
-
-			slipFilePath = trimmedSlipBase64
-			if !strings.HasPrefix(strings.ToLower(trimmedSlipBase64), "data:") {
-				slipFilePath = fmt.Sprintf("data:%s;base64,%s", detectedMIME, base64.StdEncoding.EncodeToString(decodedSlip))
-			}
-
-			if slipFileType == "" {
-				slipFileType = detectedMIME
-			}
-			if slipFileSize <= 0 {
-				slipFileSize = int64(len(decodedSlip))
-			}
-
-			return nil
-		}
-
-		if s.railwayStorage != nil && s.railwayStorage.enabledForPrivate() {
-			uploadedSlip, err := s.railwayStorage.UploadPaymentSlip(ctx, order.ID, order.PaymentID, slipFileName, trimmedSlipBase64)
-			if err != nil {
-				if inlineErr := buildInlineSlip(); inlineErr != nil {
-					return nil, err
+		if trimmedSlipBase64 != "" {
+			buildInlineSlip := func() error {
+				decodedSlip, detectedMIME, err := decodeBase64Image(trimmedSlipBase64)
+				if err != nil {
+					return err
 				}
-			} else {
-				slipFilePath = uploadedSlip.Path
-				if slipFileName == "" {
-					slipFileName = uploadedSlip.FileName
+				if len(decodedSlip) == 0 {
+					return errors.New("slip image is empty")
 				}
+				if len(decodedSlip) > maxSlipFileSizeBytes {
+					return errors.New("slip image exceeds 5 MB")
+				}
+				if !isAllowedImageMIME(detectedMIME) {
+					return fmt.Errorf("unsupported slip image type: %s", detectedMIME)
+				}
+
+				slipFilePath = trimmedSlipBase64
+				if !strings.HasPrefix(strings.ToLower(trimmedSlipBase64), "data:") {
+					slipFilePath = fmt.Sprintf("data:%s;base64,%s", detectedMIME, base64.StdEncoding.EncodeToString(decodedSlip))
+				}
+
 				if slipFileType == "" {
-					slipFileType = uploadedSlip.MIMEType
+					slipFileType = detectedMIME
 				}
 				if slipFileSize <= 0 {
-					slipFileSize = uploadedSlip.Size
+					slipFileSize = int64(len(decodedSlip))
+				}
+
+				return nil
+			}
+
+			if s.railwayStorage != nil && s.railwayStorage.enabledForPrivate() {
+				uploadedSlip, err := s.railwayStorage.UploadPaymentSlip(ctx, order.ID, order.PaymentID, slipFileName, trimmedSlipBase64)
+				if err != nil {
+					if inlineErr := buildInlineSlip(); inlineErr != nil {
+						return nil, err
+					}
+				} else {
+					slipFilePath = uploadedSlip.Path
+					if slipFileName == "" {
+						slipFileName = uploadedSlip.FileName
+					}
+					if slipFileType == "" {
+						slipFileType = uploadedSlip.MIMEType
+					}
+					if slipFileSize <= 0 {
+						slipFileSize = uploadedSlip.Size
+					}
+				}
+			} else {
+				if err := buildInlineSlip(); err != nil {
+					return nil, err
 				}
 			}
 		} else {
-			if err := buildInlineSlip(); err != nil {
-				return nil, err
-			}
+			slipFilePath = trimmedSlipPath
 		}
 	}
 
@@ -1723,6 +1728,10 @@ func (s *Service) ConfirmOrderPaymentService(ctx context.Context, orderID uuid.U
 		}
 
 		if slipAttached {
+			if strings.TrimSpace(slipFilePath) == "" {
+				return errors.New("slip image is required")
+			}
+
 			fileName := strings.TrimSpace(slipFileName)
 			if fileName == "" {
 				fileName = fmt.Sprintf("payment-slip-%s", order.ID.String())
@@ -1758,6 +1767,9 @@ func (s *Service) ConfirmOrderPaymentService(ctx context.Context, orderID uuid.U
 				UpdatedAt: now,
 			}
 			if _, err := tx.NewInsert().Model(paymentFile).Exec(ctx); err != nil {
+				if isPaymentFilesRelationMissing(err) {
+					return nil
+				}
 				return err
 			}
 		}
@@ -1819,11 +1831,77 @@ func (s *Service) getOrderPaymentReviewState(ctx context.Context, orderID uuid.U
 	if errors.Is(err, sql.ErrNoRows) {
 		return state, nil
 	}
+	if isOrderPaymentReviewTableMissing(err) {
+		return s.getOrderPaymentReviewStateFromAuditLog(ctx, orderID)
+	}
 	if !errors.Is(err, sql.ErrNoRows) {
 		return nil, err
 	}
 
 	return state, nil
+}
+
+func (s *Service) getOrderPaymentReviewStateFromAuditLog(ctx context.Context, orderID uuid.UUID) (*orderPaymentReviewState, error) {
+	state := &orderPaymentReviewState{}
+
+	latestLog := new(ent.AuditLogEntity)
+	err := s.bunDB.DB().NewSelect().
+		Model(latestLog).
+		Where("action_id = ?", orderID).
+		Where("action_type IN (?)", bun.In([]string{"order_payment_submitted", "order_payment_approved", "order_payment_rejected"})).
+		Where("status = ?", ent.StatusAuditSuccesses).
+		OrderExpr("created_at DESC").
+		Limit(1).
+		Scan(ctx)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return state, nil
+		}
+		return nil, err
+	}
+
+	switch strings.TrimSpace(latestLog.ActionType) {
+	case "order_payment_rejected":
+		state.Rejected = true
+		state.Reason = parsePaymentRejectedReason(latestLog.ActionDetail)
+	case "order_payment_submitted", "order_payment_approved":
+		state.Submitted = true
+	}
+
+	return state, nil
+}
+
+func isOrderPaymentReviewTableMissing(err error) bool {
+	if err == nil {
+		return false
+	}
+	message := strings.ToLower(strings.TrimSpace(err.Error()))
+	if message == "" {
+		return false
+	}
+	return strings.Contains(message, `relation "order_payment_reviews" does not exist`) || strings.Contains(message, "sqlstate 42p01")
+}
+
+func isOrderPaymentReviewOnConflictUnsupported(err error) bool {
+	if err == nil {
+		return false
+	}
+	message := strings.ToLower(strings.TrimSpace(err.Error()))
+	if message == "" {
+		return false
+	}
+	return strings.Contains(message, "there is no unique or exclusion constraint matching the on conflict specification") || strings.Contains(message, "sqlstate 42p10")
+}
+
+func isPaymentFilesRelationMissing(err error) bool {
+	if err == nil {
+		return false
+	}
+	message := strings.ToLower(strings.TrimSpace(err.Error()))
+	if message == "" {
+		return false
+	}
+	return strings.Contains(message, `relation "payment_files" does not exist`) || strings.Contains(message, "sqlstate 42p01")
 }
 
 func (s *Service) ApproveOrderPaymentService(ctx context.Context, orderID uuid.UUID, approverID uuid.UUID) (*OrderPaymentServiceResponse, error) {
@@ -2289,6 +2367,56 @@ func (s *Service) upsertOrderPaymentReviewInTx(
 		Set("reviewed_at = EXCLUDED.reviewed_at").
 		Set("updated_at = EXCLUDED.updated_at").
 		Exec(ctx); err != nil {
+		if isOrderPaymentReviewTableMissing(err) {
+			return nil
+		}
+		if isOrderPaymentReviewOnConflictUnsupported(err) {
+			return s.fallbackUpsertOrderPaymentReviewInTx(ctx, tx, record)
+		}
+		return err
+	}
+
+	return nil
+}
+
+func (s *Service) fallbackUpsertOrderPaymentReviewInTx(ctx context.Context, tx bun.Tx, record *ent.OrderPaymentReviewEntity) error {
+	if record == nil {
+		return nil
+	}
+
+	existing := new(ent.OrderPaymentReviewEntity)
+	err := tx.NewSelect().
+		Model(existing).
+		Where("order_id = ?", record.OrderID).
+		Limit(1).
+		Scan(ctx)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			if _, insertErr := tx.NewInsert().Model(record).Exec(ctx); insertErr != nil {
+				if isOrderPaymentReviewTableMissing(insertErr) {
+					return nil
+				}
+				return insertErr
+			}
+			return nil
+		}
+		if isOrderPaymentReviewTableMissing(err) {
+			return nil
+		}
+		return err
+	}
+
+	existing.PaymentID = record.PaymentID
+	existing.ReviewStatus = record.ReviewStatus
+	existing.RejectedReason = record.RejectedReason
+	existing.ReviewedBy = record.ReviewedBy
+	existing.ReviewedAt = record.ReviewedAt
+	existing.UpdatedAt = record.UpdatedAt
+
+	if _, err := tx.NewUpdate().Model(existing).Where("id = ?", existing.ID).Exec(ctx); err != nil {
+		if isOrderPaymentReviewTableMissing(err) {
+			return nil
+		}
 		return err
 	}
 

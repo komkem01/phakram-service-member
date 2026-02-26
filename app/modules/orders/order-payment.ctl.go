@@ -12,6 +12,7 @@ import (
 type ConfirmOrderPaymentControllerRequest struct {
 	TransferredAmount string `json:"transferred_amount"`
 	SlipImageBase64   string `json:"slip_image_base64"`
+	SlipFilePath      string `json:"slip_file_path"`
 	SlipFileName      string `json:"slip_file_name"`
 	SlipFileType      string `json:"slip_file_type"`
 	SlipFileSize      int64  `json:"slip_file_size"`
@@ -50,6 +51,7 @@ func (c *Controller) ConfirmOrderPaymentController(ctx *gin.Context) {
 	data, err := c.svc.ConfirmOrderPaymentService(ctx.Request.Context(), orderID, &ConfirmOrderPaymentServiceRequest{
 		TransferredAmount: req.TransferredAmount,
 		SlipImageBase64:   req.SlipImageBase64,
+		SlipFilePath:      req.SlipFilePath,
 		SlipFileName:      req.SlipFileName,
 		SlipFileType:      req.SlipFileType,
 		SlipFileSize:      req.SlipFileSize,
