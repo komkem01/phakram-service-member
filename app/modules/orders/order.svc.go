@@ -1760,18 +1760,24 @@ func (s *Service) ConfirmOrderPaymentService(ctx context.Context, orderID uuid.U
 				return err
 			}
 
-			paymentFile := &ent.PaymentFileEntity{
-				ID:        uuid.New(),
-				PaymentID: order.PaymentID,
-				FileID:    storageID,
-				CreatedAt: now,
-				UpdatedAt: now,
-			}
-			if _, err := tx.NewInsert().Model(paymentFile).Exec(ctx); err != nil {
-				if isPaymentFilesRelationMissing(err) {
-					return nil
-				}
+			paymentFilesTableExists, err := relationExistsInTx(ctx, tx, "public.payment_files")
+			if err != nil {
 				return err
+			}
+			if paymentFilesTableExists {
+				paymentFile := &ent.PaymentFileEntity{
+					ID:        uuid.New(),
+					PaymentID: order.PaymentID,
+					FileID:    storageID,
+					CreatedAt: now,
+					UpdatedAt: now,
+				}
+				if _, err := tx.NewInsert().Model(paymentFile).Exec(ctx); err != nil {
+					if isPaymentFilesRelationMissing(err) {
+						return nil
+					}
+					return err
+				}
 			}
 		}
 
@@ -2357,6 +2363,14 @@ func (s *Service) upsertOrderPaymentReviewInTx(
 	normalizedReason := normalizePaymentRejectionReason(rejectedReason)
 	now := time.Now()
 
+	tableExists, err := relationExistsInTx(ctx, tx, "public.order_payment_reviews")
+	if err != nil {
+		return err
+	}
+	if !tableExists {
+		return nil
+	}
+
 	record := &ent.OrderPaymentReviewEntity{
 		ID:             uuid.New(),
 		OrderID:        orderID,
@@ -2369,26 +2383,20 @@ func (s *Service) upsertOrderPaymentReviewInTx(
 		UpdatedAt:      now,
 	}
 
-	if _, err := tx.NewInsert().
-		Model(record).
-		On("CONFLICT (order_id) DO UPDATE").
-		Set("payment_id = EXCLUDED.payment_id").
-		Set("review_status = EXCLUDED.review_status").
-		Set("rejected_reason = EXCLUDED.rejected_reason").
-		Set("reviewed_by = EXCLUDED.reviewed_by").
-		Set("reviewed_at = EXCLUDED.reviewed_at").
-		Set("updated_at = EXCLUDED.updated_at").
-		Exec(ctx); err != nil {
-		if isOrderPaymentReviewTableMissing(err) {
-			return nil
-		}
-		if isOrderPaymentReviewOnConflictUnsupported(err) {
-			return s.fallbackUpsertOrderPaymentReviewInTx(ctx, tx, record)
-		}
-		return err
+	return s.fallbackUpsertOrderPaymentReviewInTx(ctx, tx, record)
+}
+
+func relationExistsInTx(ctx context.Context, tx bun.Tx, qualifiedTableName string) (bool, error) {
+	if strings.TrimSpace(qualifiedTableName) == "" {
+		return false, nil
 	}
 
-	return nil
+	var regclass sql.NullString
+	if err := tx.QueryRowContext(ctx, `SELECT to_regclass(?)`, qualifiedTableName).Scan(&regclass); err != nil {
+		return false, err
+	}
+
+	return regclass.Valid && strings.TrimSpace(regclass.String) != "", nil
 }
 
 func (s *Service) fallbackUpsertOrderPaymentReviewInTx(ctx context.Context, tx bun.Tx, record *ent.OrderPaymentReviewEntity) error {
