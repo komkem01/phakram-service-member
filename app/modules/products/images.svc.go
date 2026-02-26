@@ -3,6 +3,7 @@ package products
 import (
 	"context"
 	"database/sql"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -16,14 +17,15 @@ import (
 )
 
 type ProductImageItem struct {
-	ID        uuid.UUID `json:"id"`
-	FileID    uuid.UUID `json:"file_id"`
-	FileName  string    `json:"file_name"`
-	FilePath  string    `json:"file_path"`
-	FileType  string    `json:"file_type"`
-	FileSize  int64     `json:"file_size"`
-	CreatedAt string    `json:"created_at"`
-	UpdatedAt string    `json:"updated_at"`
+	ID         uuid.UUID `json:"id"`
+	FileID     uuid.UUID `json:"file_id"`
+	FileName   string    `json:"file_name"`
+	FilePath   string    `json:"file_path"`
+	FileSource string    `json:"file_source"`
+	FileType   string    `json:"file_type"`
+	FileSize   int64     `json:"file_size"`
+	CreatedAt  string    `json:"created_at"`
+	UpdatedAt  string    `json:"updated_at"`
 }
 
 type UploadProductImageServiceRequest struct {
@@ -38,11 +40,23 @@ type productImageRow struct {
 	StorageID     uuid.UUID `bun:"storage_id"`
 	FileName      string    `bun:"file_name"`
 	FilePath      string    `bun:"file_path"`
+	FileSource    string    `bun:"file_source"`
 	FileType      string    `bun:"file_type"`
 	FileSize      int64     `bun:"file_size"`
 	CreatedAt     time.Time `bun:"created_at"`
 	UpdatedAt     time.Time `bun:"updated_at"`
 	ProductID     uuid.UUID `bun:"product_id"`
+}
+
+func productImageFileSourceFromPath(path string) string {
+	trimmed := strings.TrimSpace(path)
+	if trimmed == "" {
+		return ""
+	}
+	if strings.HasPrefix(strings.ToLower(trimmed), "data:") {
+		return "INLINE"
+	}
+	return "STORAGE"
 }
 
 func isProductFilesRelationMissing(err error) bool {
@@ -70,6 +84,7 @@ func (s *Service) ListProductImagesService(ctx context.Context, productID uuid.U
 		ColumnExpr("st.id AS storage_id").
 		ColumnExpr("st.file_name AS file_name").
 		ColumnExpr("st.file_path AS file_path").
+		ColumnExpr("st.file_source AS file_source").
 		ColumnExpr("st.file_type AS file_type").
 		ColumnExpr("st.file_size AS file_size").
 		ColumnExpr("st.created_at AS created_at").
@@ -96,15 +111,20 @@ func (s *Service) ListProductImagesService(ctx context.Context, productID uuid.U
 		if s.railwayStorage != nil {
 			resolvedPath = s.railwayStorage.ResolveObjectURL(row.FilePath)
 		}
+		resolvedSource := strings.TrimSpace(row.FileSource)
+		if resolvedSource == "" {
+			resolvedSource = productImageFileSourceFromPath(row.FilePath)
+		}
 		items = append(items, &ProductImageItem{
-			ID:        row.StorageID,
-			FileID:    row.StorageID,
-			FileName:  row.FileName,
-			FilePath:  resolvedPath,
-			FileType:  row.FileType,
-			FileSize:  row.FileSize,
-			CreatedAt: row.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
-			UpdatedAt: row.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
+			ID:         row.StorageID,
+			FileID:     row.StorageID,
+			FileName:   row.FileName,
+			FilePath:   resolvedPath,
+			FileSource: resolvedSource,
+			FileType:   row.FileType,
+			FileSize:   row.FileSize,
+			CreatedAt:  row.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+			UpdatedAt:  row.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		})
 	}
 
@@ -115,17 +135,67 @@ func (s *Service) UploadProductImageService(ctx context.Context, productID uuid.
 	if _, err := s.db.GetProductByID(ctx, productID); err != nil {
 		return nil, err
 	}
-	if s.railwayStorage == nil || !s.railwayStorage.enabledPublic() {
-		missing := []string{"client"}
-		if s.railwayStorage != nil {
-			missing = s.railwayStorage.missingPublicConfigFields()
+
+	resolvedFileName := strings.TrimSpace(req.FileName)
+	resolvedFilePath := ""
+	resolvedFileType := strings.TrimSpace(req.FileType)
+	resolvedFileSize := req.FileSize
+
+	buildInlineImage := func() error {
+		decodedImage, detectedMIME, err := decodeBase64Image(strings.TrimSpace(req.FileBase64))
+		if err != nil {
+			return err
 		}
-		return nil, fmt.Errorf("railway public storage is not configured (missing: %s)", strings.Join(missing, ","))
+		if len(decodedImage) == 0 {
+			return errors.New("image is empty")
+		}
+		if len(decodedImage) > maxProductImageFileSizeBytes {
+			return errors.New("image exceeds 5 MB")
+		}
+		if !isAllowedProductImageMIME(detectedMIME) {
+			return fmt.Errorf("unsupported image type: %s", detectedMIME)
+		}
+
+		resolvedFilePath = strings.TrimSpace(req.FileBase64)
+		if !strings.HasPrefix(strings.ToLower(resolvedFilePath), "data:") {
+			resolvedFilePath = fmt.Sprintf("data:%s;base64,%s", detectedMIME, base64.StdEncoding.EncodeToString(decodedImage))
+		}
+
+		if resolvedFileName == "" {
+			resolvedFileName = fmt.Sprintf("product-%s%s", productID.String(), extensionByMIME(detectedMIME))
+		}
+		if resolvedFileType == "" {
+			resolvedFileType = detectedMIME
+		}
+		if resolvedFileSize <= 0 {
+			resolvedFileSize = int64(len(decodedImage))
+		}
+
+		return nil
 	}
 
-	uploaded, err := s.railwayStorage.UploadProductImage(ctx, productID, strings.TrimSpace(req.FileName), strings.TrimSpace(req.FileBase64))
-	if err != nil {
-		return nil, err
+	if s.railwayStorage != nil && s.railwayStorage.enabledPublic() {
+		uploaded, err := s.railwayStorage.UploadProductImage(ctx, productID, resolvedFileName, strings.TrimSpace(req.FileBase64))
+		if err != nil {
+			if inlineErr := buildInlineImage(); inlineErr != nil {
+				return nil, err
+			}
+		} else {
+			resolvedFilePath = uploaded.Path
+			if resolvedFileName == "" {
+				resolvedFileName = uploaded.FileName
+			}
+			if resolvedFileType == "" {
+				resolvedFileType = uploaded.MIMEType
+			}
+			if resolvedFileSize <= 0 {
+				resolvedFileSize = uploaded.Size
+			}
+		}
+	} else {
+		if err := buildInlineImage(); err != nil {
+			return nil, err
+		}
 	}
 
 	now := time.Now()
@@ -135,10 +205,11 @@ func (s *Service) UploadProductImageService(ctx context.Context, productID uuid.
 	storage := &ent.StorageEntity{
 		ID:            storageID,
 		RefID:         productID,
-		FileName:      uploaded.FileName,
-		FilePath:      uploaded.Path,
-		FileSize:      uploaded.Size,
-		FileType:      uploaded.MIMEType,
+		FileName:      resolvedFileName,
+		FilePath:      resolvedFilePath,
+		FileSource:    productImageFileSourceFromPath(resolvedFilePath),
+		FileSize:      resolvedFileSize,
+		FileType:      resolvedFileType,
 		IsActive:      true,
 		RelatedEntity: ent.RelatedEntityProductFile,
 		UploadedBy:    nil,
@@ -153,7 +224,7 @@ func (s *Service) UploadProductImageService(ctx context.Context, productID uuid.
 		UpdatedAt: now,
 	}
 
-	err = s.bunDB.DB().RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
+	txErr := s.bunDB.DB().RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
 		if _, err := tx.NewInsert().Model(storage).Exec(ctx); err != nil {
 			return err
 		}
@@ -162,22 +233,28 @@ func (s *Service) UploadProductImageService(ctx context.Context, productID uuid.
 		}
 		return nil
 	})
-	if err != nil {
-		if isProductFilesRelationMissing(err) {
+	if txErr != nil {
+		if isProductFilesRelationMissing(txErr) {
 			return nil, errors.New("product image storage is not ready; please run database migrations")
 		}
-		return nil, err
+		return nil, txErr
+	}
+
+	resolvedPath := strings.TrimSpace(resolvedFilePath)
+	if s.railwayStorage != nil {
+		resolvedPath = s.railwayStorage.ResolveObjectURL(resolvedPath)
 	}
 
 	return &ProductImageItem{
-		ID:        storageID,
-		FileID:    storageID,
-		FileName:  uploaded.FileName,
-		FilePath:  s.railwayStorage.ResolveObjectURL(uploaded.Path),
-		FileType:  uploaded.MIMEType,
-		FileSize:  uploaded.Size,
-		CreatedAt: now.Format("2006-01-02T15:04:05Z07:00"),
-		UpdatedAt: now.Format("2006-01-02T15:04:05Z07:00"),
+		ID:         storageID,
+		FileID:     storageID,
+		FileName:   resolvedFileName,
+		FilePath:   resolvedPath,
+		FileSource: productImageFileSourceFromPath(resolvedFilePath),
+		FileType:   resolvedFileType,
+		FileSize:   resolvedFileSize,
+		CreatedAt:  now.Format("2006-01-02T15:04:05Z07:00"),
+		UpdatedAt:  now.Format("2006-01-02T15:04:05Z07:00"),
 	}, nil
 }
 

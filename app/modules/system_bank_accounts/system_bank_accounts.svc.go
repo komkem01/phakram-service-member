@@ -20,19 +20,20 @@ type ListSystemBankAccountServiceRequest struct {
 }
 
 type SystemBankAccountServiceResponse struct {
-	ID               uuid.UUID `json:"id"`
-	BankID           uuid.UUID `json:"bank_id"`
-	BankNameTh       string    `json:"bank_name_th"`
-	BankNameEn       string    `json:"bank_name_en"`
-	AccountName      string    `json:"account_name"`
-	AccountNo        string    `json:"account_no"`
-	Branch           string    `json:"branch"`
-	QRCodeImageURL   string    `json:"qr_image_url"`
-	IsActive         bool      `json:"is_active"`
-	IsDefaultReceive bool      `json:"is_default_receive"`
-	IsDefaultRefund  bool      `json:"is_default_refund"`
-	CreatedAt        time.Time `json:"created_at"`
-	UpdatedAt        time.Time `json:"updated_at"`
+	ID                uuid.UUID `json:"id"`
+	BankID            uuid.UUID `json:"bank_id"`
+	BankNameTh        string    `json:"bank_name_th"`
+	BankNameEn        string    `json:"bank_name_en"`
+	AccountName       string    `json:"account_name"`
+	AccountNo         string    `json:"account_no"`
+	Branch            string    `json:"branch"`
+	QRCodeImageURL    string    `json:"qr_image_url"`
+	QRCodeImageSource string    `json:"qr_image_source"`
+	IsActive          bool      `json:"is_active"`
+	IsDefaultReceive  bool      `json:"is_default_receive"`
+	IsDefaultRefund   bool      `json:"is_default_refund"`
+	CreatedAt         time.Time `json:"created_at"`
+	UpdatedAt         time.Time `json:"updated_at"`
 }
 
 type UpsertSystemBankAccountServiceRequest struct {
@@ -47,19 +48,31 @@ type UpsertSystemBankAccountServiceRequest struct {
 }
 
 type systemBankAccountRow struct {
-	ID               uuid.UUID `bun:"id"`
-	BankID           uuid.UUID `bun:"bank_id"`
-	BankNameTh       string    `bun:"bank_name_th"`
-	BankNameEn       string    `bun:"bank_name_en"`
-	AccountName      string    `bun:"account_name"`
-	AccountNo        string    `bun:"account_no"`
-	Branch           string    `bun:"branch"`
-	QRCodeImageURL   string    `bun:"qr_image_url"`
-	IsActive         bool      `bun:"is_active"`
-	IsDefaultReceive bool      `bun:"is_default_receive"`
-	IsDefaultRefund  bool      `bun:"is_default_refund"`
-	CreatedAt        time.Time `bun:"created_at"`
-	UpdatedAt        time.Time `bun:"updated_at"`
+	ID                uuid.UUID `bun:"id"`
+	BankID            uuid.UUID `bun:"bank_id"`
+	BankNameTh        string    `bun:"bank_name_th"`
+	BankNameEn        string    `bun:"bank_name_en"`
+	AccountName       string    `bun:"account_name"`
+	AccountNo         string    `bun:"account_no"`
+	Branch            string    `bun:"branch"`
+	QRCodeImageURL    string    `bun:"qr_image_url"`
+	QRCodeImageSource string    `bun:"qr_image_source"`
+	IsActive          bool      `bun:"is_active"`
+	IsDefaultReceive  bool      `bun:"is_default_receive"`
+	IsDefaultRefund   bool      `bun:"is_default_refund"`
+	CreatedAt         time.Time `bun:"created_at"`
+	UpdatedAt         time.Time `bun:"updated_at"`
+}
+
+func systemBankQRCodeSourceFromPath(path string) string {
+	trimmed := strings.TrimSpace(path)
+	if trimmed == "" {
+		return ""
+	}
+	if strings.HasPrefix(strings.ToLower(trimmed), "data:") {
+		return "INLINE"
+	}
+	return "STORAGE"
 }
 
 func (s *Service) ListService(ctx context.Context, req *ListSystemBankAccountServiceRequest) ([]*SystemBankAccountServiceResponse, *base.ResponsePaginate, error) {
@@ -93,6 +106,7 @@ func (s *Service) ListService(ctx context.Context, req *ListSystemBankAccountSer
 		ColumnExpr("sba.account_no AS account_no").
 		ColumnExpr("sba.branch AS branch").
 		ColumnExpr("sba.qr_image_url AS qr_image_url").
+		ColumnExpr("sba.qr_image_source AS qr_image_source").
 		ColumnExpr("sba.is_active AS is_active").
 		ColumnExpr("sba.is_default_receive AS is_default_receive").
 		ColumnExpr("sba.is_default_refund AS is_default_refund").
@@ -107,20 +121,29 @@ func (s *Service) ListService(ctx context.Context, req *ListSystemBankAccountSer
 
 	data := make([]*SystemBankAccountServiceResponse, 0, len(rows))
 	for _, row := range rows {
+		resolvedQR := strings.TrimSpace(row.QRCodeImageURL)
+		if s.railwayStorage != nil {
+			resolvedQR = s.railwayStorage.ResolveObjectURL(resolvedQR)
+		}
+		resolvedSource := strings.TrimSpace(row.QRCodeImageSource)
+		if resolvedSource == "" {
+			resolvedSource = systemBankQRCodeSourceFromPath(row.QRCodeImageURL)
+		}
 		data = append(data, &SystemBankAccountServiceResponse{
-			ID:               row.ID,
-			BankID:           row.BankID,
-			BankNameTh:       row.BankNameTh,
-			BankNameEn:       row.BankNameEn,
-			AccountName:      row.AccountName,
-			AccountNo:        row.AccountNo,
-			Branch:           row.Branch,
-			QRCodeImageURL:   row.QRCodeImageURL,
-			IsActive:         row.IsActive,
-			IsDefaultReceive: row.IsDefaultReceive,
-			IsDefaultRefund:  row.IsDefaultRefund,
-			CreatedAt:        row.CreatedAt,
-			UpdatedAt:        row.UpdatedAt,
+			ID:                row.ID,
+			BankID:            row.BankID,
+			BankNameTh:        row.BankNameTh,
+			BankNameEn:        row.BankNameEn,
+			AccountName:       row.AccountName,
+			AccountNo:         row.AccountNo,
+			Branch:            row.Branch,
+			QRCodeImageURL:    resolvedQR,
+			QRCodeImageSource: resolvedSource,
+			IsActive:          row.IsActive,
+			IsDefaultReceive:  row.IsDefaultReceive,
+			IsDefaultRefund:   row.IsDefaultRefund,
+			CreatedAt:         row.CreatedAt,
+			UpdatedAt:         row.UpdatedAt,
 		})
 	}
 
@@ -150,6 +173,7 @@ func (s *Service) InfoService(ctx context.Context, id string) (*SystemBankAccoun
 		ColumnExpr("sba.account_no AS account_no").
 		ColumnExpr("sba.branch AS branch").
 		ColumnExpr("sba.qr_image_url AS qr_image_url").
+		ColumnExpr("sba.qr_image_source AS qr_image_source").
 		ColumnExpr("sba.is_active AS is_active").
 		ColumnExpr("sba.is_default_receive AS is_default_receive").
 		ColumnExpr("sba.is_default_refund AS is_default_refund").
@@ -162,21 +186,31 @@ func (s *Service) InfoService(ctx context.Context, id string) (*SystemBankAccoun
 		return nil, err
 	}
 
+	resolvedQR := strings.TrimSpace(row.QRCodeImageURL)
+	if s.railwayStorage != nil {
+		resolvedQR = s.railwayStorage.ResolveObjectURL(resolvedQR)
+	}
+	resolvedSource := strings.TrimSpace(row.QRCodeImageSource)
+	if resolvedSource == "" {
+		resolvedSource = systemBankQRCodeSourceFromPath(row.QRCodeImageURL)
+	}
+
 	span.AddEvent(`system_bank_accounts.svc.info.success`)
 	return &SystemBankAccountServiceResponse{
-		ID:               row.ID,
-		BankID:           row.BankID,
-		BankNameTh:       row.BankNameTh,
-		BankNameEn:       row.BankNameEn,
-		AccountName:      row.AccountName,
-		AccountNo:        row.AccountNo,
-		Branch:           row.Branch,
-		QRCodeImageURL:   row.QRCodeImageURL,
-		IsActive:         row.IsActive,
-		IsDefaultReceive: row.IsDefaultReceive,
-		IsDefaultRefund:  row.IsDefaultRefund,
-		CreatedAt:        row.CreatedAt,
-		UpdatedAt:        row.UpdatedAt,
+		ID:                row.ID,
+		BankID:            row.BankID,
+		BankNameTh:        row.BankNameTh,
+		BankNameEn:        row.BankNameEn,
+		AccountName:       row.AccountName,
+		AccountNo:         row.AccountNo,
+		Branch:            row.Branch,
+		QRCodeImageURL:    resolvedQR,
+		QRCodeImageSource: resolvedSource,
+		IsActive:          row.IsActive,
+		IsDefaultReceive:  row.IsDefaultReceive,
+		IsDefaultRefund:   row.IsDefaultRefund,
+		CreatedAt:         row.CreatedAt,
+		UpdatedAt:         row.UpdatedAt,
 	}, nil
 }
 
@@ -189,19 +223,28 @@ func (s *Service) CreateService(ctx context.Context, req *UpsertSystemBankAccoun
 	}
 
 	id := uuid.New()
+	qrCodeImageURL := strings.TrimSpace(req.QRCodeImageURL)
+	if strings.HasPrefix(strings.ToLower(qrCodeImageURL), "data:") && s.railwayStorage != nil && s.railwayStorage.enabledPublic() {
+		uploadedQR, uploadErr := s.railwayStorage.UploadSystemBankQRCode(ctx, id, qrCodeImageURL)
+		if uploadErr != nil {
+			return uploadErr
+		}
+		qrCodeImageURL = uploadedQR.Path
+	}
 	now := time.Now()
 	item := &ent.SystemBankAccountEntity{
-		ID:               id,
-		BankID:           req.BankID,
-		AccountName:      strings.TrimSpace(req.AccountName),
-		AccountNo:        strings.TrimSpace(req.AccountNo),
-		Branch:           strings.TrimSpace(req.Branch),
-		QRCodeImageURL:   strings.TrimSpace(req.QRCodeImageURL),
-		IsActive:         req.IsActive,
-		IsDefaultReceive: req.IsDefaultReceive,
-		IsDefaultRefund:  req.IsDefaultRefund,
-		CreatedAt:        now,
-		UpdatedAt:        now,
+		ID:                id,
+		BankID:            req.BankID,
+		AccountName:       strings.TrimSpace(req.AccountName),
+		AccountNo:         strings.TrimSpace(req.AccountNo),
+		Branch:            strings.TrimSpace(req.Branch),
+		QRCodeImageURL:    qrCodeImageURL,
+		QRCodeImageSource: systemBankQRCodeSourceFromPath(qrCodeImageURL),
+		IsActive:          req.IsActive,
+		IsDefaultReceive:  req.IsDefaultReceive,
+		IsDefaultRefund:   req.IsDefaultRefund,
+		CreatedAt:         now,
+		UpdatedAt:         now,
 	}
 
 	err := s.bunDB.DB().RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
@@ -259,12 +302,22 @@ func (s *Service) UpdateService(ctx context.Context, id string, req *UpsertSyste
 		return err
 	}
 
+	qrCodeImageURL := strings.TrimSpace(req.QRCodeImageURL)
+	if strings.HasPrefix(strings.ToLower(qrCodeImageURL), "data:") && s.railwayStorage != nil && s.railwayStorage.enabledPublic() {
+		uploadedQR, uploadErr := s.railwayStorage.UploadSystemBankQRCode(ctx, itemID, qrCodeImageURL)
+		if uploadErr != nil {
+			return uploadErr
+		}
+		qrCodeImageURL = uploadedQR.Path
+	}
+
 	now := time.Now()
 	item.BankID = req.BankID
 	item.AccountName = strings.TrimSpace(req.AccountName)
 	item.AccountNo = strings.TrimSpace(req.AccountNo)
 	item.Branch = strings.TrimSpace(req.Branch)
-	item.QRCodeImageURL = strings.TrimSpace(req.QRCodeImageURL)
+	item.QRCodeImageURL = qrCodeImageURL
+	item.QRCodeImageSource = systemBankQRCodeSourceFromPath(qrCodeImageURL)
 	item.IsActive = req.IsActive
 	item.IsDefaultReceive = req.IsDefaultReceive
 	item.IsDefaultRefund = req.IsDefaultRefund

@@ -172,6 +172,11 @@ func apiPublic(r *gin.RouterGroup, mod *modules.Modules) {
 		public.POST("/contact", mod.Contact.Ctl.SubmitController)
 		public.GET("/contact/:id/replies", mod.Contact.Ctl.ListRepliesPublicController)
 		public.POST("/contact/:id/replies", mod.Contact.Ctl.CreateReplyPublicController)
+		consents := public.Group("/consents")
+		{
+			consents.GET("/cookie", mod.Auth.Ctl.GetCookiePolicyPublicController)
+			consents.POST("/cookie/accept", mod.Auth.Ctl.AcceptCookiePolicyPublicController)
+		}
 
 		auth := public.Group("/auth")
 		{
@@ -190,6 +195,10 @@ func apiAuth(r *gin.RouterGroup, mod *modules.Modules) {
 	auth := r.Group("/auth", mod.Auth.Ctl.AuthMiddleware())
 	{
 		auth.GET("/me", mod.Auth.Ctl.GetInfoController)
+		auth.GET("/consents/cookie", mod.Auth.Ctl.GetCookiePolicyAuthController)
+		auth.POST("/consents/cookie/accept", mod.Auth.Ctl.AcceptCookiePolicyAuthController)
+		auth.GET("/consents/cookie/policies", mod.Auth.Ctl.ListCookiePolicyVersionsController)
+		auth.POST("/consents/cookie/policies", mod.Auth.Ctl.CreateCookiePolicyVersionController)
 		auth.POST("/logout", mod.Auth.Ctl.LogoutController)
 		auth.GET("/notifications", mod.Orders.Ctl.ListMemberNotificationController)
 		auth.GET("/notifications/unread-count", mod.Orders.Ctl.CountMemberUnreadNotificationsController)

@@ -107,7 +107,12 @@ func modulesInit() {
 	zipcodesMod := zipcodes.New(db.Svc, entitiesMod.Svc)
 	statusesMod := statuses.New(db.Svc, entitiesMod.Svc)
 	tiersMod := tiers.New(db.Svc, entitiesMod.Svc)
-	systemBankAccountsMod := systembankaccounts.New(db.Svc)
+	systemBankAccountsMod := systembankaccounts.New(db.Svc, systembankaccounts.RailwayConfig{
+		URL:            conf.RailwayStorage.URL,
+		ServiceRoleKey: conf.RailwayStorage.ServiceRoleKey,
+		PublicBucket:   conf.RailwayStorage.PublicBucket,
+		PrivateBucket:  conf.RailwayStorage.PrivateBucket,
+	})
 	categoriesMod := categories.New(db.Svc, entitiesMod.Svc)
 	productsMod := products.New(db.Svc, entitiesMod.Svc, entitiesMod.Svc, products.RailwayConfig{
 		URL:            conf.RailwayStorage.URL,

@@ -14,8 +14,9 @@ type Module struct {
 
 type (
 	Service struct {
-		tracer trace.Tracer
-		bunDB  *database.DatabaseService
+		tracer         trace.Tracer
+		bunDB          *database.DatabaseService
+		railwayStorage *railwayStorageClient
 	}
 	Controller struct {
 		tracer trace.Tracer
@@ -24,18 +25,26 @@ type (
 )
 
 type Options struct {
-	tracer trace.Tracer
-	bunDB  *database.DatabaseService
+	tracer      trace.Tracer
+	bunDB       *database.DatabaseService
+	railwayConf RailwayConfig
 }
 
-func New(bunDB *database.DatabaseService) *Module {
+type RailwayConfig struct {
+	URL            string
+	ServiceRoleKey string
+	PublicBucket   string
+	PrivateBucket  string
+}
+
+func New(bunDB *database.DatabaseService, railwayConf RailwayConfig) *Module {
 	tracer := otel.Tracer("system_bank_accounts_module")
-	svc := newService(&Options{tracer: tracer, bunDB: bunDB})
+	svc := newService(&Options{tracer: tracer, bunDB: bunDB, railwayConf: railwayConf})
 	return &Module{Svc: svc, Ctl: newController(tracer, svc)}
 }
 
 func newService(opt *Options) *Service {
-	return &Service{tracer: opt.tracer, bunDB: opt.bunDB}
+	return &Service{tracer: opt.tracer, bunDB: opt.bunDB, railwayStorage: newRailwayStorageClient(opt.railwayConf)}
 }
 
 func newController(trace trace.Tracer, svc *Service) *Controller {

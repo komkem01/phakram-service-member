@@ -1747,6 +1747,7 @@ func (s *Service) ConfirmOrderPaymentService(ctx context.Context, orderID uuid.U
 				RefID:         order.PaymentID,
 				FileName:      fileName,
 				FilePath:      slipFilePath,
+				FileSource:    orderStorageFileSourceFromPath(slipFilePath),
 				FileSize:      slipFileSize,
 				FileType:      fileType,
 				IsActive:      true,
@@ -1902,6 +1903,17 @@ func isPaymentFilesRelationMissing(err error) bool {
 		return false
 	}
 	return strings.Contains(message, `relation "payment_files" does not exist`) || strings.Contains(message, "sqlstate 42p01")
+}
+
+func orderStorageFileSourceFromPath(path string) string {
+	trimmed := strings.TrimSpace(path)
+	if trimmed == "" {
+		return ""
+	}
+	if strings.HasPrefix(strings.ToLower(trimmed), "data:") {
+		return "INLINE"
+	}
+	return "STORAGE"
 }
 
 func (s *Service) ApproveOrderPaymentService(ctx context.Context, orderID uuid.UUID, approverID uuid.UUID) (*OrderPaymentServiceResponse, error) {

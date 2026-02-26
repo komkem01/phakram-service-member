@@ -24,6 +24,7 @@ type StorageEntity struct {
 	RefID         uuid.UUID         `bun:"ref_id,type:uuid" json:"ref_id"`
 	FileName      string            `bun:"file_name" json:"file_name"`
 	FilePath      string            `bun:"file_path" json:"file_path"`
+	FileSource    string            `bun:"file_source" json:"file_source"`
 	FileSize      int64             `bun:"file_size" json:"file_size"`
 	FileType      string            `bun:"file_type" json:"file_type"`
 	IsActive      bool              `bun:"is_active" json:"is_active"`

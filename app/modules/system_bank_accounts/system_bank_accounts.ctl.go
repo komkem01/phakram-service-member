@@ -32,19 +32,20 @@ type InfoSystemBankAccountControllerRequest struct {
 }
 
 type ListSystemBankAccountControllerResponse struct {
-	ID               uuid.UUID `json:"id"`
-	BankID           uuid.UUID `json:"bank_id"`
-	BankNameTh       string    `json:"bank_name_th"`
-	BankNameEn       string    `json:"bank_name_en"`
-	AccountName      string    `json:"account_name"`
-	AccountNo        string    `json:"account_no"`
-	Branch           string    `json:"branch"`
-	QRCodeImageURL   string    `json:"qr_image_url"`
-	IsActive         bool      `json:"is_active"`
-	IsDefaultReceive bool      `json:"is_default_receive"`
-	IsDefaultRefund  bool      `json:"is_default_refund"`
-	CreatedAt        int64     `json:"created_at"`
-	UpdatedAt        int64     `json:"updated_at"`
+	ID                uuid.UUID `json:"id"`
+	BankID            uuid.UUID `json:"bank_id"`
+	BankNameTh        string    `json:"bank_name_th"`
+	BankNameEn        string    `json:"bank_name_en"`
+	AccountName       string    `json:"account_name"`
+	AccountNo         string    `json:"account_no"`
+	Branch            string    `json:"branch"`
+	QRCodeImageURL    string    `json:"qr_image_url"`
+	QRCodeImageSource string    `json:"qr_image_source"`
+	IsActive          bool      `json:"is_active"`
+	IsDefaultReceive  bool      `json:"is_default_receive"`
+	IsDefaultRefund   bool      `json:"is_default_refund"`
+	CreatedAt         int64     `json:"created_at"`
+	UpdatedAt         int64     `json:"updated_at"`
 }
 
 func (c *Controller) ListController(ctx *gin.Context) {
