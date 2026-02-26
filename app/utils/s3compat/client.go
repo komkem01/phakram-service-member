@@ -291,6 +291,10 @@ func (c *Client) buildTarget(bucket string, objectPath string) (*requestTarget, 
 
 	hostnameForRequest := hostname
 	canonicalURI := buildCanonicalURI(bucket, objectPath)
+	if shouldUseVirtualHostedStyle(hostname) {
+		hostnameForRequest = bucket + "." + hostname
+		canonicalURI = buildCanonicalObjectURI(objectPath)
+	}
 
 	hostForHeader := hostnameForRequest
 	if port != "" {
