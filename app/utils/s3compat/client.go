@@ -366,7 +366,11 @@ func (c *Client) authorizationHeader(dateStamp string, signedHeaders string, sig
 }
 
 func (c *Client) credentialScope(dateStamp string) string {
-	return dateStamp + "/" + c.region + "/s3/aws4_request"
+	region := strings.TrimSpace(c.region)
+	if strings.EqualFold(region, "auto") || region == "" {
+		region = "us-east-1"
+	}
+	return dateStamp + "/" + region + "/s3/aws4_request"
 }
 
 func buildCanonicalRequest(method string, canonicalURI string, canonicalQuery string, headers map[string]string, signedHeaders string, payloadHash string) string {

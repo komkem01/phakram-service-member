@@ -1631,35 +1631,19 @@ func (s *Service) ConfirmOrderPaymentService(ctx context.Context, orderID uuid.U
 	if slipAttached {
 		trimmedSlipBase64 := strings.TrimSpace(req.SlipImageBase64)
 
-		if s.railwayStorage != nil && s.railwayStorage.enabledForPrivate() {
-			uploadedSlip, err := s.railwayStorage.UploadPaymentSlip(ctx, order.ID, order.PaymentID, slipFileName, trimmedSlipBase64)
-			if err != nil {
-				return nil, err
-			}
-
-			slipFilePath = uploadedSlip.Path
-			if slipFileName == "" {
-				slipFileName = uploadedSlip.FileName
-			}
-			if slipFileType == "" {
-				slipFileType = uploadedSlip.MIMEType
-			}
-			if slipFileSize <= 0 {
-				slipFileSize = uploadedSlip.Size
-			}
-		} else {
+		buildInlineSlip := func() error {
 			decodedSlip, detectedMIME, err := decodeBase64Image(trimmedSlipBase64)
 			if err != nil {
-				return nil, err
+				return err
 			}
 			if len(decodedSlip) == 0 {
-				return nil, errors.New("slip image is empty")
+				return errors.New("slip image is empty")
 			}
 			if len(decodedSlip) > maxSlipFileSizeBytes {
-				return nil, errors.New("slip image exceeds 5 MB")
+				return errors.New("slip image exceeds 5 MB")
 			}
 			if !isAllowedImageMIME(detectedMIME) {
-				return nil, fmt.Errorf("unsupported slip image type: %s", detectedMIME)
+				return fmt.Errorf("unsupported slip image type: %s", detectedMIME)
 			}
 
 			slipFilePath = trimmedSlipBase64
@@ -1672,6 +1656,32 @@ func (s *Service) ConfirmOrderPaymentService(ctx context.Context, orderID uuid.U
 			}
 			if slipFileSize <= 0 {
 				slipFileSize = int64(len(decodedSlip))
+			}
+
+			return nil
+		}
+
+		if s.railwayStorage != nil && s.railwayStorage.enabledForPrivate() {
+			uploadedSlip, err := s.railwayStorage.UploadPaymentSlip(ctx, order.ID, order.PaymentID, slipFileName, trimmedSlipBase64)
+			if err != nil {
+				if inlineErr := buildInlineSlip(); inlineErr != nil {
+					return nil, err
+				}
+			} else {
+				slipFilePath = uploadedSlip.Path
+				if slipFileName == "" {
+					slipFileName = uploadedSlip.FileName
+				}
+				if slipFileType == "" {
+					slipFileType = uploadedSlip.MIMEType
+				}
+				if slipFileSize <= 0 {
+					slipFileSize = uploadedSlip.Size
+				}
+			}
+		} else {
+			if err := buildInlineSlip(); err != nil {
+				return nil, err
 			}
 		}
 	}
