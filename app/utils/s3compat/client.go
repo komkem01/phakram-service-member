@@ -31,6 +31,9 @@ func NewClient(endpointURL string, accessKeyID string, secretAccessKey string, r
 	if trimmedRegion == "" {
 		trimmedRegion = "auto"
 	}
+	if strings.Contains(strings.ToLower(endpointHost(trimmedEndpoint)), "storageapi.dev") && strings.EqualFold(trimmedRegion, "auto") {
+		trimmedRegion = "us-east-1"
+	}
 	if timeout <= 0 {
 		timeout = 20 * time.Second
 	}
